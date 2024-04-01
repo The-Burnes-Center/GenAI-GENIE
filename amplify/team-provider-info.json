@@ -1,0 +1,15 @@
+{
+  "staging": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-<AMPLIFY_ENV>-authRole",
+      "UnauthRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/amplify-<AMPLIFY_ENV>-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/amplify-<AMPLIFY_ENV>-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-<AMPLIFY_ENV>-deployment",
+      "UnauthRoleName": "amplify-<AMPLIFY_ENV>-unauthRole",
+      "StackName": "amplify-<AMPLIFY_ENV>",
+      "StackId": "arn:aws:cloudformation:us-east-1:<AWS_ACCOUNT_ID>:stack/amplify-<AMPLIFY_ENV>/<STACK_ID>",
+      "AmplifyAppId": "<AMPLIFY_APP_ID>"
+    }
+  }
+}
