@@ -39,7 +39,7 @@ export default function AppConfigured() {
     "oauth": {
       "domain": "<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com",
       "scope": ["email", "openid", "profile"],
-      "redirectSignIn": "https://<CLOUDFRONT_DOMAIN>/",
+      "redirectSignIn": "https://<CLOUDFRONT_DOMAIN>",
       "redirectSignOut": "https://myapplications.microsoft.com/",
       "responseType": "code"
     }};
