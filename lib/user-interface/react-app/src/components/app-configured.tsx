@@ -20,7 +20,7 @@ export default function AppConfigured() {
   const [configured, setConfigured] = useState<boolean>(false);  
 
   // this is the authentication provider that Cognito needs
-  const federatedIdName : string = "AzureAD-OIDC-MassGov";
+  const federatedIdName : string = "AzureAD-OIDC-Prod-GENIE";
 
   // trigger authentication state when needed
   useEffect(() => {
@@ -39,8 +39,8 @@ export default function AppConfigured() {
     "oauth": {
       "domain": "<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com",
       "scope": ["email", "openid", "profile"],
-      "redirectSignIn": "https://<CLOUDFRONT_DOMAIN>/",
-      "redirectSignOut": "https://myapplications.microsoft.com/",
+      "redirectSignIn": " https://<CLOUDFRONT_DOMAIN>/",
+      "redirectSignOut": "https://myapplications.microsoft.com/?tenantid=<AZURE_TENANT_ID>/",
       "responseType": "code"
     }};
     // end removing here
