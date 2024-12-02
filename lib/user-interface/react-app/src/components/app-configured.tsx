@@ -40,7 +40,7 @@ export default function AppConfigured() {
       "domain": "<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com",
       "scope": ["email", "openid", "profile"],
       "redirectSignIn": "https://<CLOUDFRONT_DOMAIN>/",
-      "redirectSignOut": "https://login.microsoftonline.com/<AZURE_TENANT_ID>/oauth2/v2.0/authorize?client_id=<AZURE_CLIENT_ID>&redirect_uri=https%3A%2F%2F<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com%2Foauth2%2Fidpresponse&scope=openid&response_type=code&state=H4sIAAAAAAAAAD2RS7OiMBSE_0vWRnkEFHcIInBFnXu9Kk5NWSEJLzFBHuowNf994mZ2faq_rnPq9B-AwRz0LWS47aB6WZ-sM28jMwcjkEjHHvqG2S7cBq4Dd42gcLXcBEvpEunqvNEb9d4JQipiGWWT93d0Z5rWSIBKIO-6up1PJlRHgygeM3SbFY9kTCrR07QRvBtz1k0kzCRMBGVSplK-10mZgflPwG64qOQgasYLKkXdiLSoGPg1ArlkcRC30dCH9ZJq3C3Mvvfdmp_Xzo_doa1XhUwUEjte3Y1mul6po9asrkG4Vvhlg56xiiO0d5XVgehW5jzdIJaJUia-NMOU8vreEcbN9JE7axKqa3_h9xt6iLA_qIZT1vdLVmn9MfwwNlocasy-RC-HLhbl0fP86Dt46iy6fF9OUTnYZ8XSLdHuHXTco-0dn5fKK7h_fnwup2Ya8OyQruKYZl67OPovD6Hh9HKusb-hiciigb121-QMd1_wYe-R8Gjv8S086X7u4t9PeLXbx7uaSl5cv7vK5MfYGPddPv5f8Rjf8CA4ERkvOjEm4iYTNzBXp7qumtp0qsgPg3mKq5aNQPNu2SIznTACMSUGRBZG0NIUClFCiKGqKNGwCf7-A_PI9FlKAgAA.H4sIAAAAAAAAAFvM-yj_49fQvfPkXn3qY_vYZC4V7nb5hKthX-wH4Va_sMUAKe-INSAAAAA.4&sso_reload=true",
+      "redirectSignOut": "https://login.microsoftonline.com/<AZURE_TENANT_ID>/oauth2/v2.0/authorize?client_id=<AZURE_CLIENT_ID>&redirect_uri=https%3A%2F%2F<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com%2Foauth2%2Fidpresponse&scope=openid&response_type=code&sso_reload=true",
       "responseType": "code"
     }};
     // end removing here
