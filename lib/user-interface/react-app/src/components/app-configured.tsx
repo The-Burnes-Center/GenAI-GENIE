@@ -40,7 +40,7 @@ export default function AppConfigured() {
       "domain": "<COGNITO_DOMAIN>.auth.us-east-1.amazoncognito.com",
       "scope": ["email", "openid", "profile"],
       "redirectSignIn": "https://<CLOUDFRONT_DOMAIN>/",
-      "redirectSignOut": "https://login.microsoftonline.com/<AZURE_TENANT_ID>/oauth2/v2.0/logout?post_logout_redirect_uri=https%3A%2F%2F<CLOUDFRONT_DOMAIN>",
+      "redirectSignOut": "https://login.microsoftonline.com/<AZURE_TENANT_ID>/oauth2/v2.0/logout?redirect_uri=https://<CLOUDFRONT_DOMAIN>/",
       "responseType": "code"
     }};
     // end removing here
