@@ -18,9 +18,8 @@ export default function AppConfigured() {
   const [authenticated, setAuthenticated] = useState<boolean>(null);
   const [theme, setTheme] = useState(StorageHelper.getTheme());
   const [configured, setConfigured] = useState<boolean>(false);  
+  const [providerName, setProviderName] = useState<string | undefined>();
 
-  // this is the authentication provider that Cognito needs
-  const federatedIdName : string = "AzureAD-OIDC-MassGov";
 
   // trigger authentication state when needed
   useEffect(() => {
@@ -28,23 +27,8 @@ export default function AppConfigured() {
       try {     
         const result = await fetch("/aws-exports.json");
         const awsExports = await result.json();
-        // start removing here
-        delete awsExports['aws_cognito_identity_pool_id']
-        delete awsExports['aws_user_pools_id']
-        delete awsExports['aws_user_pools_web_client_id']
-        awsExports["Auth"] = {
-    "region": "us-east-1",
-    "userPoolId": "us-east-1_BHned34tF",
-    "userPoolWebClientId": "4plddm493u4jcei3ucq0o5pbdv",
-    "oauth": {
-      "domain": "sandbox-mass-gov.auth.us-east-1.amazoncognito.com",
-      "scope": ["email", "openid", "profile"],
-      "redirectSignIn": "https://dr7l4jtkt9o67.cloudfront.net/",
-      "redirectSignOut": "https://myapplications.microsoft.com/",
-      "responseType": "code"
-    }};
-    // end removing here
         Amplify.configure(awsExports);   
+        setProviderName(awsExports.config?.federated_provider_name);
         setConfigured(true);
         // const currentUser = 
         await Auth.currentAuthenticatedUser();
@@ -64,7 +48,11 @@ export default function AppConfigured() {
   useEffect(() => {  
     if (!authenticated && configured) {
       console.log("No authenticated user, initiating sign-in.");
-      Auth.federatedSignIn({ customProvider: federatedIdName });
+      if (providerName) {
+        Auth.federatedSignIn({ customProvider: providerName });
+      } else {
+        Auth.federatedSignIn();
+      }
     }
   }, [authenticated]);
 

@@ -22,6 +22,7 @@ export interface AppConfig {
     default_embeddings_model: string;
     default_cross_encoder_model: string;
     privateWebsite: boolean;
+    federated_provider_name?: string;
   };
   Storage: {
     AWSS3: {

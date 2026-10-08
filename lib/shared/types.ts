@@ -76,6 +76,16 @@ export interface SystemConfig {
   certificate?: string;
   domain?: string;
   privateWebsite?: boolean;
+  // Sign in through an existing Cognito user pool federated to an
+  // external identity provider (e.g. Azure AD) instead of the generated one.
+  federatedAuth?: {
+    userPoolId: string;
+    userPoolWebClientId: string;
+    domain: string;
+    redirectSignIn: string;
+    redirectSignOut: string;
+    providerName: string;
+  };
   cfGeoRestrictEnable: boolean;
   cfGeoRestrictList: [];
   bedrock?: {
