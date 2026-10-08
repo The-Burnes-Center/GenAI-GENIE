@@ -69,18 +69,38 @@ export class UserInterface extends Construct {
 
       
 
+    const federatedAuth = props.config.federatedAuth;
+    const authExports = federatedAuth
+      ? {
+          Auth: {
+            region: cdk.Aws.REGION,
+            userPoolId: federatedAuth.userPoolId,
+            userPoolWebClientId: federatedAuth.userPoolWebClientId,
+            oauth: {
+              domain: federatedAuth.domain,
+              scope: ["email", "openid", "profile"],
+              redirectSignIn: federatedAuth.redirectSignIn,
+              redirectSignOut: federatedAuth.redirectSignOut,
+              responseType: "code",
+            },
+          },
+        }
+      : {
+          aws_user_pools_id: props.userPoolId,
+          aws_user_pools_web_client_id: props.userPoolClientId,
+          aws_cognito_identity_pool_id: props.identityPool.identityPoolId,
+          Auth: {
+            region: cdk.Aws.REGION,
+            userPoolId: props.userPoolId,
+            userPoolWebClientId: props.userPoolClientId,
+            identityPoolId: props.identityPool.identityPoolId,
+          },
+        };
+
     const exportsAsset = s3deploy.Source.jsonData("aws-exports.json", {
       aws_project_region: cdk.Aws.REGION,
       aws_cognito_region: cdk.Aws.REGION,
-      aws_user_pools_id: props.userPoolId,
-      aws_user_pools_web_client_id: props.userPoolClientId,
-      aws_cognito_identity_pool_id: props.identityPool.identityPoolId,
-      Auth: {
-        region: cdk.Aws.REGION,
-        userPoolId: props.userPoolId,
-        userPoolWebClientId: props.userPoolClientId,
-        identityPoolId: props.identityPool.identityPoolId,
-      },
+      ...authExports,
       aws_appsync_graphqlEndpoint: props.api.graphqlApi.graphqlUrl,
       aws_appsync_region: cdk.Aws.REGION,
       aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
@@ -100,6 +120,7 @@ export class UserInterface extends Construct {
           props.config
         ),
         privateWebsite: props.config.privateWebsite ? true : false,
+        federated_provider_name: federatedAuth?.providerName,
       },
     });
 
