@@ -1,4 +1,8 @@
-# EOTSS GenAI GENIE README
+# EOTSS GenAI GENIE
+
+[![Watch the GenAI GENIE launch video](docs/about/assets/genie-launch.jpg)](docs/about/assets/genie-launch.mp4)
+
+*Click the image to watch a 23-second tour.*
 
 ## Overview
 
@@ -28,15 +32,13 @@ The Smart Model feature enhances AI responses by leveraging advanced algorithms 
 
 The Task section offers a pre-filled prompt system to assist users in completing specific tasks, enhancing user experience and productivity. It automates prompt engineering, enabling users to concentrate on tasks without the need to craft detailed prompts.
 
-(SARAH: ADD HERE)
+Built-in tasks include Summarize, Translate, Create a Meeting Agenda, Email Composition Assistant, Draft a Memo and Daily Planning.
 
 ### Workspaces
 
 Workspaces function like a file system within the AI GENIE, allowing users to create and manage multiple private workspaces. Each workspace can be configured with different Retrieval-Augmented Generation (RAG) engines, such as Aurora, OpenSearch, and Kendra. Users can upload multiple documents to their workspaces and perform queries using the RAG setup.
 
-Workspaces allow users to upload documents to genie. This can be accessed through the side pannel of genie " Document Upload" or through the Chatbot message input, where there is a button on the left hand side of the input panel. This will automatically create a workspace in Kendra for the user, where they can upload a document and be redirected to the chatbot to begin interaction with the uploaded document.
-
-(SARAH: add a video here)
+Workspaces allow users to upload documents to genie. This can be accessed through the side panel of GENIE ("Document Upload") or through the Chatbot message input, where there is a button on the left hand side of the input panel. This will automatically create a workspace in Kendra for the user, where they can upload a document and be redirected to the chatbot to begin interaction with the uploaded document.
 
 ### Retrieval-Augmented Generation (RAG)
 
@@ -50,7 +52,24 @@ For more information, visit the [AWS GenAI LLM Chatbot](https://aws-samples.gith
 
 ## Deployment Guide
 
-[Guide link](https://github.com/sarahklute/EOTSS-GENIE/blob/main/docs/guide/deploy.md)
+See the [deployment guide](docs/guide/deploy.md).
+
+### Federated sign-in (optional)
+
+By default the app signs users in through the Cognito user pool the stack creates. To sign in through an existing user pool connected to an outside identity provider (such as Azure AD), add a `federatedAuth` block to your local `bin/config.json` (this file is not committed):
+
+```json
+"federatedAuth": {
+  "userPoolId": "us-east-1_XXXXXXXXX",
+  "userPoolWebClientId": "<app client id>",
+  "domain": "<your-domain>.auth.us-east-1.amazoncognito.com",
+  "redirectSignIn": "https://<your-cloudfront-domain>/",
+  "redirectSignOut": "https://<where users land after sign-out>/",
+  "providerName": "<identity provider name in Cognito>"
+}
+```
+
+The deploy writes these values into the site's `aws-exports.json`, and the app reads them from there.
 
 ## Developers
 
