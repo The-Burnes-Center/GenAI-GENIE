@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import {  
+import {
+  Authenticator,
   ThemeProvider,
   defaultDarkModeOverride,
 } from "@aws-amplify/ui-react";
 import App from "../app";
-import { Amplify, Auth} from "aws-amplify";
+import { Amplify } from "aws-amplify";
 import { AppConfig } from "../common/types";
 import { AppContext } from "../common/app-context";
 import { Alert, StatusIndicator } from "@cloudscape-design/components";
@@ -12,49 +13,33 @@ import { StorageHelper } from "../common/helpers/storage-helper";
 import { Mode } from "@cloudscape-design/global-styles";
 import "@aws-amplify/ui-react/styles.css";
 
+const centeredStyle = {
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
 export default function AppConfigured() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  // const [error, setError] = useState<boolean | null>(null);
-  const [authenticated, setAuthenticated] = useState<boolean>(null);
+  const [hasConfigError, setHasConfigError] = useState(false);
   const [theme, setTheme] = useState(StorageHelper.getTheme());
-  const [configured, setConfigured] = useState<boolean>(false);  
-  const [providerName, setProviderName] = useState<string | undefined>();
 
-
-  // trigger authentication state when needed
+  // load the deploy-time config and point Amplify at the stack's user pool
   useEffect(() => {
     (async () => {
-      try {     
+      try {
         const result = await fetch("/aws-exports.json");
         const awsExports = await result.json();
-        Amplify.configure(awsExports);   
-        setProviderName(awsExports.config?.federated_provider_name);
-        setConfigured(true);
-        // const currentUser = 
-        await Auth.currentAuthenticatedUser();
-        // console.log("Authenticated user:", currentUser);
-        setAuthenticated(true);
-        // console.log(authenticated);
+        Amplify.configure(awsExports);
         setConfig(awsExports);
       } catch (e) {
-        console.error("Authentication check error:", e);
-        setAuthenticated(false);
+        console.error("Error loading /aws-exports.json:", e);
+        setHasConfigError(true);
       }
     })();
   }, []);
-  
-  
-  // whenever the authentication state changes, if it's changed to un-authenticated, re-verify
-  useEffect(() => {  
-    if (!authenticated && configured) {
-      console.log("No authenticated user, initiating sign-in.");
-      if (providerName) {
-        Auth.federatedSignIn({ customProvider: providerName });
-      } else {
-        Auth.federatedSignIn();
-      }
-    }
-  }, [authenticated]);
 
   // dark/light theme
   useEffect(() => {
@@ -87,46 +72,29 @@ export default function AppConfigured() {
     };
   }, [theme]);
 
-  // display a loading screen while waiting for the config file to load
-  if (!config) {
-    // if (error) {
-    //   return (
-    //     <div
-    //       style={{
-    //         height: "100%",
-    //         width: "100%",
-    //         display: "flex",
-    //         justifyContent: "center",
-    //         alignItems: "center",
-    //       }}
-    //     >
-    //       <Alert header="Configuration error" type="error">
-    //         Error loading configuration from "
-    //         <a href="/aws-exports.json" style={{ fontWeight: "600" }}>
-    //           /aws-exports.json
-    //         </a>
-    //         "
-    //       </Alert>
-    //     </div>
-    //   );
-    // }
-
+  if (hasConfigError) {
     return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <StatusIndicator type="loading">Loading</StatusIndicator>        
+      <div style={centeredStyle}>
+        <Alert header="Configuration error" type="error">
+          Could not load the app configuration from{" "}
+          <a href="/aws-exports.json" style={{ fontWeight: "600" }}>
+            /aws-exports.json
+          </a>
+          .
+        </Alert>
       </div>
     );
   }
 
-  // the main app - only display it when authenticated
+  if (!config) {
+    return (
+      <div style={centeredStyle}>
+        <StatusIndicator type="loading">Loading</StatusIndicator>
+      </div>
+    );
+  }
+
+  // users are created by an admin (self sign-up is off), so hide the sign-up tab
   return (
     <AppContext.Provider value={config}>
       <ThemeProvider
@@ -135,13 +103,10 @@ export default function AppConfigured() {
           overrides: [defaultDarkModeOverride],
         }}
         colorMode={theme === Mode.Dark ? "dark" : "light"}
-      >        
-        {authenticated ? (
-          <App/>
-        ) : (          
-          // <TextContent>Are we authenticated: {authenticated}</TextContent>
-          <></>
-        )}
+      >
+        <Authenticator hideSignUp loginMechanisms={["email"]}>
+          <App />
+        </Authenticator>
       </ThemeProvider>
     </AppContext.Provider>
   );

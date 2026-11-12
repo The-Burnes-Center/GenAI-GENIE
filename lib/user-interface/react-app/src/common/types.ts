@@ -1,5 +1,4 @@
 import { SelectProps } from "@cloudscape-design/components";
-import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 
 export interface AppConfig {
   aws_project_region: string;
@@ -7,13 +6,6 @@ export interface AppConfig {
   aws_user_pools_id: string;
   aws_user_pools_web_client_id: string;
   config: {
-    auth_federated_provider?:
-      | { auto_redirect: boolean; custom: true; name: string }
-      | {
-          auto_redirect: boolean;
-          custom: false;
-          name: CognitoHostedUIIdentityProvider;
-        };
     rag_enabled: boolean;
     cross_encoders_enabled: boolean;
     sagemaker_embeddings_enabled: boolean;
@@ -22,7 +14,6 @@ export interface AppConfig {
     default_embeddings_model: string;
     default_cross_encoder_model: string;
     privateWebsite: boolean;
-    federated_provider_name?: string;
   };
   Storage: {
     AWSS3: {

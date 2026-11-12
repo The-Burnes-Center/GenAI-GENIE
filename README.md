@@ -54,23 +54,6 @@ For more information, visit the [AWS GenAI LLM Chatbot](https://aws-samples.gith
 
 See the [deployment guide](docs/guide/deploy.md).
 
-### Federated sign-in (optional)
-
-By default the app signs users in through the Cognito user pool the stack creates. To sign in through an existing user pool connected to an outside identity provider (such as Azure AD), add a `federatedAuth` block to your local `bin/config.json` (this file is not committed):
-
-```json
-"federatedAuth": {
-  "userPoolId": "us-east-1_XXXXXXXXX",
-  "userPoolWebClientId": "<app client id>",
-  "domain": "<your-domain>.auth.us-east-1.amazoncognito.com",
-  "redirectSignIn": "https://<your-cloudfront-domain>/",
-  "redirectSignOut": "https://<where users land after sign-out>/",
-  "providerName": "<identity provider name in Cognito>"
-}
-```
-
-The deploy writes these values into the site's `aws-exports.json`, and the app reads them from there.
-
 ## Developers
 
 - [Sarah Klute](https://www.linkedin.com/in/sarahklute/)

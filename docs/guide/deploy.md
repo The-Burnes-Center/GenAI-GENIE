@@ -2,111 +2,16 @@
 
 ## Environment setup
 
-GitHub Actions have been configured for GENIE within two branches:
-
-1. Non-Prod branch: use for testing changes before production
-2. Prod branch: production version of GENIE
-
-### To deploy to non-prod branch:
-
-```shell
-git checkout non-prod
-git add <file changed with relative path>
-git commit -m “message description of changes”
-git push non-prod
-```
-
-### To deploy to prod branch, merge changes from non-prod branch:
-
-Pull changes from non-prod
-
-```shell
-git checkout non-prod
-git pull non-prod
-```
-
-Switch to prod branch to prepare for merge
-
-```shell
-git checkout prod
-git pull prod
-```
-
-Merge non-prod branch into prod (Note: If there are no conflicts, the merge will complete successfully)
-
-```shell
-git merge non-prod
-```
-
-Resolve any merge conflicts:
-
-Open files with conflict markers (<<<<<<<, =======, >>>>>>>) in your editor. Decide on the appropriate changes, accept incoming changes (from non-prod branch)
-
-Mark resolved conflicts:
-
-```shell
-git add <file-with-conflict>
-```
-
-Finalize Merge:
-
-Commit the merge once all conflicts are resolved and changes are staged, push changes to Prod to finalize Prod Deployment
-
-```shell
-git commit -m "Merge non-prod into prod"
-git push
-```
-
-GitHub Actions will automatically deploy prod branch!
-
-### Deploy with Github Codespaces
-
-If you'd like to use [GitHub Codespaces](https://github.com/features/codespaces) to deploy the solution, you will need the following before proceeding:
-
-1. An [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
-2. An [IAM User](https://console.aws.amazon.com/iamv2/home?#/users/create) with:
-
-- `AdministratorAccess` policy granted to your user (for production, we recommend restricting access as needed)
-- Take note of `Access key` and `Secret access key`.
-
-To get started, click on the button below.
-
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/aws-samples/aws-genai-llm-chatbot)
-
-Once in the Codespaces terminal, set up the AWS Credentials by running
-
-```shell
-aws configure
-```
-
-```shell
-AWS Access Key ID [None]: <the access key from the IAM user generated above>
-AWS Secret Access Key [None]: <the secret access key from the IAM user generated above>
-Default region name: <the region you plan to deploy the solution to>
-Default output format: json
-```
-
-You are all set for deployment; you can now jump to [.3 of the deployment section below](#deployment-dependencies-installation).
-
 ### Local deployment
 
-If you have decided not to use AWS Cloud9 or GitHub Codespaces, verify that your environment satisfies the following prerequisites:
+Verify that your environment satisfies the following prerequisites:
 
 You have:
 
 1. An [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
 2. `AdministratorAccess` policy granted to your AWS account (for production, we recommend restricting access as needed)
 3. Both console and programmatic access
-4. [NodeJS 16 or 18](https://nodejs.org/en/download/) installed
-
-   - If you are using [`nvm`](https://github.com/nvm-sh/nvm) you can run the following before proceeding
-   - ```
-     nvm install 16 && nvm use 16
-
-     or
-
-     nvm install 18 && nvm use 18
-     ```
+4. [NodeJS 18 or newer](https://nodejs.org/en/download/) installed
 
 5. [AWS CLI](https://aws.amazon.com/cli/) installed and configured to use with your AWS account
 6. [Typescript 3.8+](https://www.typescriptlang.org/download) installed
@@ -120,25 +25,14 @@ You have:
 1. Clone the repository
 
 ```bash
-git clone https://github.com/aws-samples/aws-genai-llm-chatbot
+git clone https://github.com/The-Burnes-Center/GenAI-GENIE
 ```
 
 2. Move into the cloned repository
 
 ```bash
-cd aws-genai-llm-chatbot
+cd GenAI-GENIE
 ```
-
-#### (Optional) Only for Cloud9
-
-If you use Cloud9, increase the instance's EBS volume to at least 100GB.
-To do this, run the following command from the Cloud9 terminal:
-
-```
-./scripts/cloud9-resize.sh
-```
-
-See the documentation for more details [on environment resize](https://docs.aws.amazon.com/cloud9/latest/user-guide/move-environment.html#move-environment-resize).
 
 <a id="deployment-dependencies-installation"></a> 3. Install the project dependencies and build the project by running this command
 
@@ -193,17 +87,19 @@ GenAIChatBotStack.ApiKeysSecretNameXXXX = ApiKeysSecretName-xxxxxx
 ...
 ```
 
-7. Open the generated **Cognito User Pool** Link from outputs above i.e. `https://xxxxx.console.aws.amazon.com/cognito/v2/idp/user-pools/xxxxx_XXXXX/users?region=xxxxx`
+7. Create a user to sign in with. Self sign-up is off, so users are created from the command line:
 
-8. Add a user that will be used to log into the web interface.
+```bash
+./scripts/create-user.sh demo@example.org
+```
 
-9. Open the `User Interface` Url for the outputs above, i.e. `dxxxxxxxxxxxxx.cloudfront.net`
+The script finds the user pool from the stack outputs, prompts for a password (or reads `GENIE_USER_PASSWORD`), and sets it as permanent so there is no forced reset on first sign-in. Re-run it to reset a password. Pass the stack name as a second argument if you set a `prefix` in the config.
 
-10. Login with the user created in .8; you will be asked to change the password.
+8. Open the `User Interface` URL from the outputs above (i.e. `dxxxxxxxxxxxxx.cloudfront.net`) and sign in with that email and password.
 
 ## Run user interface locally
 
-See instructions in the README file of the [`lib/user-interface/react-app`](https://github.com/aws-samples/aws-genai-llm-chatbot/blob/main/lib/user-interface/react-app/README.md) folder.
+See instructions in the README file of the [`lib/user-interface/react-app`](../../lib/user-interface/react-app/README.md) folder.
 
 ## Using Kendra with a non-english index
 
