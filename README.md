@@ -1,61 +1,86 @@
-# EOTSS GenAI GENIE
+# Genie
 
-[![Watch the GenAI GENIE launch video](docs/about/assets/genie-launch.jpg)](docs/about/assets/genie-launch.mp4)
+Genie is a private AI workspace for public-sector and nonprofit teams. Staff chat with current AI models in one place, attach files, compare models side by side, start from ready-made templates, and ask questions about their own documents with sources shown. Admins run everything from an in-app console.
 
-*Click the image to watch a 23-second tour.*
+It runs entirely in your AWS account on serverless services, so it costs cents a month when nobody is using it.
 
-## Overview
+## What it does
 
-The GenAI GENIE is designed to empower Massachusetts state agency employees with varying technical proficiencies to effectively utilize AI technologies. It addresses the challenges of accessibility, system integration, and ethical concerns while enhancing operational efficiency, service delivery, and innovation within public sector operations.
+- **Chat with current models** through Amazon Bedrock: Claude, GPT, Nova, Mistral, DeepSeek, Qwen, Grok and others. Admins choose which models are available.
+- **Full-length answers and full conversations.** Replies can use each model's full output length, and the whole conversation is sent every turn. Nothing is quietly cut short; if a model can't fit the history, Genie says so.
+- **Attach files and images.** PDFs, Word documents, spreadsheets and images. Models that can't read files directly get the extracted text, so attachments work with every model.
+- **Think harder** on models that support extended reasoning, with the reasoning shown in a collapsible section.
+- **Compare** two or three models on the same prompt, then continue with the best answer in a normal chat.
+- **Templates** for common work: summaries, plain-language rewrites, emails, agendas, translations.
+- **Document workspaces**, personal or shared, searched with Bedrock knowledge bases. Answers cite the passages they used.
+- **Easy sign-in.** Passkeys (Face ID, Touch ID, security keys), passwords, and optional emailed codes. Self sign-up can be off, limited to your email domains, or held for admin approval.
+- **Admin console.** People and roles, approvals, the model catalog with health tests, templates, settings and daily limits, usage by model and person, a feedback queue and an audit log.
+- **Accessible.** Built to WCAG 2.2 AA, with light and dark themes and a designed phone layout.
 
-## GENIE Features
+## How it works
 
-### Chatbot Playground
+```mermaid
+flowchart LR
+  user[Browser] --> cf[CloudFront]
+  cf --> web[S3: web app]
+  cf -->|/api/chat| chat[Lambda: chat, streaming]
+  cf -->|/api/*| api[Lambda: API]
+  user -->|sign-in, passkeys| cognito[Cognito]
+  chat --> bedrock[Amazon Bedrock models]
+  chat --> kb[Bedrock knowledge base on S3 Vectors]
+  chat --> ddb[(DynamoDB)]
+  api --> ddb
+  api --> s3[(S3: uploads)]
+  api --> kb
+  api --> cognito
+```
 
-The Chatbot Playground provides a safe environment for users to experiment with different Large Language Models (LLMs). Users can test various models, customize parameters (e.g., TopP, temperature), and observe how different configurations affect model responses. This feature is ideal for gaining hands-on experience with AI models and understanding their capabilities.
+There is no VPC, NAT gateway or always-on server. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design: data model, API, streaming format, limits and naming rules.
 
-![Chatbot Playground Tutorial](docs/about/assets/chatbotPlaygroundTutorial.gif)
+## Get started
 
-### Multi-Chat Playground
+```bash
+npm run install:all
+npm run dev:mock          # the web app with a built-in mock backend, no AWS needed
+```
 
-The Multi-Chat Playground enhances the Chatbot Playground by allowing users to query 2-4 models simultaneously. This feature facilitates efficient comparison of results on a single screen, helping users to evaluate and select the best model for their specific needs.
+To deploy to AWS, follow [docs/deploy.md](docs/deploy.md). In short:
 
-![Multi-Chat Tutorial](docs/about/assets/multiChatTutorial.gif)
+```bash
+npx cdk bootstrap aws://<account>/us-east-1
+npm run deploy
+./scripts/create-user.sh you@example.org --admin genie-dev
+```
 
-### Smart Model
+## Repository
 
-The Smart Model feature enhances AI responses by leveraging advanced algorithms and a dedicated context management system. It automatically decides which model to use based on various factors such as task requirements, cost, efficiency, token size, and model capabilities. This ensures that beginner users can focus on their tasks without needing in-depth knowledge of model specifications.
+| Path | What it holds |
+|---|---|
+| `web/` | React 19 app: Vite, Tailwind CSS 4, React Aria Components, TanStack Query |
+| `backend/` | Node.js 22 Lambdas: API router, streaming chat, Cognito triggers |
+| `infra/` | AWS CDK app that deploys the `genie-{env}` stack |
+| `design/` | Design spec, tokens, logo and the clickable prototype |
+| `docs/` | Deploy guide, admin guide, operations notes |
+| `scripts/` | Operator scripts |
 
-![Smart Model Tutorial](docs/about/assets/smartModel.gif)
+## Checks
 
-### Tasks
+```bash
+npm run check    # typecheck, lint, tests and build across all packages
+npm run synth    # synthesize the CloudFormation template
+```
 
-The Task section offers a pre-filled prompt system to assist users in completing specific tasks, enhancing user experience and productivity. It automates prompt engineering, enabling users to concentrate on tasks without the need to craft detailed prompts.
+Every AWS resource is named `genie-{env}-*` and tagged `Project`, `Environment`, `ManagedBy` and `Owner`; an infrastructure test fails the build if any resource breaks that rule.
 
-Built-in tasks include Summarize, Translate, Create a Meeting Agenda, Email Composition Assistant, Draft a Memo and Daily Planning.
+## Docs
 
-### Workspaces
+- [Deploy](docs/deploy.md)
+- [Admin guide](docs/admin-guide.md)
+- [Operations](docs/operations.md)
+- [Architecture](ARCHITECTURE.md)
+- [Design](design/DESIGN.md)
+- [Contributing](CONTRIBUTING.md)
 
-Workspaces function like a file system within the AI GENIE, allowing users to create and manage multiple private workspaces. Each workspace can be configured with different Retrieval-Augmented Generation (RAG) engines, such as Aurora, OpenSearch, and Kendra. Users can upload multiple documents to their workspaces and perform queries using the RAG setup.
+## License
 
-Workspaces allow users to upload documents to genie. This can be accessed through the side panel of GENIE ("Document Upload") or through the Chatbot message input, where there is a button on the left hand side of the input panel. This will automatically create a workspace in Kendra for the user, where they can upload a document and be redirected to the chatbot to begin interaction with the uploaded document.
-
-### Retrieval-Augmented Generation (RAG)
-
-The RAG setup allows users to upload documents and perform search queries, ensuring accurate and relevant information retrieval tailored to user needs. This feature enhances the ability to find and utilize critical information from large datasets efficiently.
-
-## Architecture
-
-![AI GENIE Architecture](docs/about/assets/architecture.jpg)
-
-For more information, visit the [AWS GenAI LLM Chatbot](https://aws-samples.github.io/aws-genai-llm-chatbot/).
-
-## Deployment Guide
-
-See the [deployment guide](docs/guide/deploy.md).
-
-## Developers
-
-- [Sarah Klute](https://www.linkedin.com/in/sarahklute/)
-- [Alayna Schwarzer](https://www.linkedin.com/in/alayna-schwarzer/)
-- [Dhruv Kamalesh Kumar](https://www.linkedin.com/in/dhruvkamaleshkumar)
+[MIT](LICENSE) © 2026 The Burnes Center

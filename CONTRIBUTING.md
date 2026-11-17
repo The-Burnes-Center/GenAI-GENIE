@@ -1,59 +1,31 @@
-# Contributing Guidelines
+# Contributing
 
-Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional
-documentation, we greatly value feedback and contributions from our community.
+Thanks for helping improve Genie.
 
-Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
-information to effectively respond to your bug report or contribution.
+## Before you start
 
+- Read [ARCHITECTURE.md](ARCHITECTURE.md). It is the contract for the API, the chat stream, the data model, the limits that must not regress, and resource naming.
+- UI work follows [design/DESIGN.md](design/DESIGN.md) and the prototype in `design/prototype/`.
 
-## Reporting Bugs/Feature Requests
+## Working locally
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+```bash
+npm run install:all
+npm run dev:mock      # web app with a mock backend
+npm run check         # typecheck, lint, tests, build
+npm run synth         # CloudFormation template
+```
 
-When filing an issue, please check existing open, or recently closed, issues to make sure somebody else hasn't already
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+## Standards
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you've made relevant to the bug
-* Anything unusual about your environment or deployment
+- **Tests:** add or update tests with every change. `npm run check` must pass.
+- **Limits:** never add a cap, truncation or small default (reply length, history, retrieval, file size) without updating the limits section of ARCHITECTURE.md and telling the person in the UI when it applies.
+- **Accessibility:** WCAG 2.2 AA. New screens need zero axe violations and a working keyboard path.
+- **Naming:** AWS resources follow `genie-{env}-*` and carry the four standard tags. React components use PascalCase files; other files use kebab-case.
+- **Code:** small files and functions, early returns, named constants, explicit error handling with a friendly message in the UI and detail in the server log.
+- **Secrets:** never commit credentials, account ids or `infra/config.json`.
+- **Commits:** conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `perf:`, `ci:`).
 
+## Reporting security issues
 
-## Contributing via Pull Requests
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
-
-1. You are working against the latest source on the *main* branch.
-2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
-
-To send us a pull request, please:
-
-1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
-
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
-[creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
-
-
-## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a great place to start.
-
-
-## Code of Conduct
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
-opensource-codeofconduct@amazon.com with any additional questions or comments.
-
-
-## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
-
-
-## Licensing
-
-See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+Please report security issues privately to the maintainers rather than in a public issue.
