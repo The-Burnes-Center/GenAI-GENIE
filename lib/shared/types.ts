@@ -69,6 +69,8 @@ export enum Direction {
 
 export interface SystemConfig {
   prefix: string;
+  // Environment cost-allocation tag; defaults to "dev"
+  environment?: "dev" | "prod";
   vpc?: {
     vpcId?: string;
     createVpcEndpoints?: boolean;
