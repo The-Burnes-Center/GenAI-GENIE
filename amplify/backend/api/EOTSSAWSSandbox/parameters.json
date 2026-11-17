@@ -1,5 +1,0 @@
-{
-  "AppSyncApiName": "EOTSSAWSSandbox",
-  "DynamoDBBillingMode": "PAY_PER_REQUEST",
-  "DynamoDBEnableServerSideEncryption": false
-}
