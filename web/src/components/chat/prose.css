@@ -1,0 +1,40 @@
+/* Reading styles for answers: 16/26 type, quiet blocks, tables and code in scroll regions. */
+.prose { font-size: var(--text-body); line-height: var(--text-body--line-height); overflow-wrap: anywhere; }
+.prose > * + * { margin-top: 12px; }
+.prose h2, .prose h3, .prose h4 { font-weight: 600; letter-spacing: -0.005em; margin-top: 22px; }
+.prose h2 { font-size: var(--text-title); line-height: var(--text-title--line-height); }
+.prose h3, .prose h4 { font-size: var(--text-body); }
+.prose ul, .prose ol { padding-left: 22px; display: grid; gap: 6px; }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li::marker { color: var(--color-ink-3); }
+.prose blockquote { margin-left: 0; padding-left: 14px; border-left: 2px solid var(--color-edge-strong); color: var(--color-ink-2); }
+.prose hr { border: 0; border-top: 1px solid var(--color-edge); margin: 20px 0; }
+.prose a { color: var(--color-accent); }
+.prose :not(pre) > code { font-family: var(--font-mono); font-size: 0.875em; background: var(--color-sunken); padding: 1px 5px; border-radius: var(--radius-xs); }
+.prose .table-wrap { overflow-x: auto; border: 1px solid var(--color-edge); border-radius: var(--radius-lg); }
+.prose .table-wrap:focus-visible { outline-offset: 2px; }
+.prose table { border-collapse: collapse; width: 100%; font-size: var(--text-ui); line-height: var(--text-ui--line-height); min-width: 480px; }
+.prose th, .prose td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--color-edge); vertical-align: top; }
+.prose th { background: var(--color-sunken); font-weight: 600; white-space: nowrap; }
+.prose tr:last-child td { border-bottom: 0; }
+.prose .codeblock { border: 1px solid var(--color-edge); border-radius: var(--radius-lg); background: var(--color-code-bg); color: var(--color-code-ink); overflow: hidden; }
+.prose .codeblock header { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--color-edge); font-size: var(--text-caption); color: var(--color-ink-2); }
+.prose .codeblock pre { margin: 0; padding: 12px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.25rem; }
+.prose .codeblock pre:focus-visible { outline-offset: -2px; }
+.prose .cite { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; margin: 0 1px; vertical-align: 1px; border-radius: var(--radius-xs); background: var(--color-accent-soft); color: var(--color-accent-soft-ink); font-size: 0.75rem; font-weight: 600; line-height: 1; cursor: pointer; }
+.prose .cite:hover { background: var(--color-selected); }
+.prose .cite:focus-visible { outline-offset: 1px; }
+.prose.compact { font-size: 0.9375rem; line-height: 1.5rem; }
+
+/* Streaming caret: inline at the end of the last block. Blinks at 1 Hz and slows under reduced motion. */
+.prose[data-streaming="true"] > :is(p, h2, h3, h4):last-child::after,
+.prose[data-streaming="true"] > :is(ul, ol):last-child > li:last-child::after {
+  content: ""; display: inline-block; width: 8px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em;
+  background: var(--color-accent); border-radius: 1px; animation: caret-blink 1s steps(2, start) infinite;
+}
+@keyframes caret-blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .prose[data-streaming="true"] > :is(p, h2, h3, h4):last-child::after,
+  .prose[data-streaming="true"] > :is(ul, ol):last-child > li:last-child::after { animation-duration: 2s; }
+}
