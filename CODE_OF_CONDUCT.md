@@ -1,7 +1,4 @@
-# Code of conduct
-
-This project follows the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
-
-In short: be respectful, assume good intent, welcome newcomers, and keep discussion focused on the work. Harassment and personal attacks are not tolerated.
-
-Report unacceptable behavior privately to the maintainers. Reports are handled confidentially.
+## Code of Conduct
+This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
+For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
+opensource-codeofconduct@amazon.com with any additional questions or comments.
