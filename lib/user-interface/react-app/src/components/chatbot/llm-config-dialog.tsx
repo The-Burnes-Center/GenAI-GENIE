@@ -77,6 +77,7 @@ export default function LLMConfigDialog(props: LLMConfigDialogProps) {
 
   return (
     <Modal
+      closeAriaLabel="Close dialog"
       onDismiss={() => props.setVisible(false)}
       visible={true}
       footer={

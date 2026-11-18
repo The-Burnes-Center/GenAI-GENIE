@@ -78,6 +78,7 @@ export default function ConfigDialog(props: ConfigDialogProps) {
 
   return (
     <Modal
+      closeAriaLabel="Close dialog"
       onDismiss={() => props.setVisible(false)}
       visible={props.visible}
       footer={

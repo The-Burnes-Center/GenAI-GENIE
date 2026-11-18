@@ -16,6 +16,14 @@ export default function BaseAppLayout(
     <SessionRefreshContext.Provider value={{needsRefresh,setNeedsRefresh}}>
     <AppLayout
       headerSelector="#awsui-top-navigation"
+      ariaLabels={{
+        navigation: "Side navigation",
+        navigationToggle: "Open side navigation",
+        navigationClose: "Close side navigation",
+        tools: "Help panel",
+        toolsToggle: "Open help panel",
+        toolsClose: "Close help panel",
+      }}
       navigation={<NavigationPanel />}
       navigationOpen={!navigationPanelState.collapsed}
       onNavigationChange={({ detail }) =>

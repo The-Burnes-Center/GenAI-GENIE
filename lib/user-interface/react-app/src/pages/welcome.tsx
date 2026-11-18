@@ -1,236 +1,171 @@
 import {
-    ContentLayout,
-    Header,
-    Cards,
-    Container,
-    SpaceBetween,
-    Link,
-    BreadcrumbGroup,
+  BreadcrumbGroup,
+  Box,
+  Cards,
+  Container,
+  ContentLayout,
+  Header,
+  Link,
+  SpaceBetween,
 } from "@cloudscape-design/components";
 import BaseAppLayout from "../components/base-app-layout";
 import RouterButton from "../components/wrappers/router-button";
+import TaskGrid from "../components/task-grid";
 import useOnFollow from "../common/hooks/use-on-follow";
-import {CHATBOT_NAME, languageList} from "../common/constants";
-import {useHref} from "react-router-dom";
-import {TaskOptions} from "../common/constants";
-import TaskPriming from "../components/chatbot/task";
-import {v4 as uuidv4} from "uuid";
-import CarouselNext from "../components/carousel";
-import styles from "../../styles/globals.css";
-import {StorageHelper} from "../common/helpers/storage-helper.ts";
-import {Mode} from "@cloudscape-design/global-styles";
-import { useState, useEffect } from "react";
+import { CHATBOT_NAME } from "../common/constants";
 
+interface FeatureCard {
+  name: string;
+  href: string;
+  img: string;
+  description: string;
+  external?: boolean;
+}
 
-export default function Welcome({theme}) {
-    const onFollow = useOnFollow();
+// Same proportion at every width, so wide single-column cards don't crop the art
+const IMAGE_ASPECT_RATIO = "2 / 1";
+const CARDS_PER_ROW = [{ cards: 1 }, { minWidth: 760, cards: 3 }];
 
-    return (
-        <BaseAppLayout
-            breadcrumbs={
-                <BreadcrumbGroup
-                    onFollow={onFollow}
-                    items={[
-                        {
-                            text: CHATBOT_NAME,
-                            href: "/",
-                        },
-                    ]}
-                />
-            }
-            content={
-                <ContentLayout
-                    header={
-                        <Header
-                            variant="h1"
-                            description="Experiment and chat with different models. Compare and contrast their responses for your target uses."
-                            actions={
-                                <RouterButton
-                                    iconAlign="right"
-                                    iconName="contact"
-                                    variant="primary"
-                                    href="/documentation/doc"
-                                >
-                                    Getting Started
-                                </RouterButton>
-                            }
-                        >
-                            Welcome to GENIE
-                        </Header>
-                    }
-                >
-                    <SpaceBetween size="l">
-                        <Cards
-                            cardDefinition={{
-                                header: (item) => (
-                                    <Link
-                                        external={item.external}
-                                        href={item.href}
-                                        fontSize="heading-m"
-                                    >
-                                        {item.name}
-                                    </Link>
-                                ),
-                                sections: [
-                                    {
-                                        content: (item) => (
-                                            <div style={{minHeight: '200px'}}>
-                                                <img
-                                                    src={item.img}
-                                                    alt="Placeholder"
-                                                    style={{
-                                                        width: "100%",
-                                                        height: '180px',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '20px'
-                                                    }}
-                                                />
-                                            </div>
-                                        ),
-                                    },
-                                    {
-                                        content: (item) => (
-                                            <div>
-                                                <div>{item.description}</div>
-                                            </div>
-                                        ),
-                                    },
-                                    {
-                                        id: "type",
-                                        header: " ",
-                                        content: (item) => item.type,
-                                    },
-                                ],
-                            }}
-                            cardsPerRow={[{cards: 1}, {minWidth: 700, cards: 3}]}
-                            items={[
-                                {
-                                    name: "Chatbot",
-                                    external: false,
-                                    type: " ",
-                                    href: "/chatbot/playground",
-                                    img: "/images/welcome/chatbotWhite.jpg",
-                                    description:
-                                        "Experiment using different models to automate your everyday tasks",
-                                },
-                                {
-                                    name: "Multi-Chat Playground",
-                                    external: false,
-                                    type: " ",
-                                    href: "/chatbot/multichat",
-                                    img: "/images/welcome/multichat.png",
-                                    description:
-                                        "Compare how models respond to the same prompt",
-                                },
-                                {
-                                    name: "Give Feedback",
-                                    type: " ",
-                                    href: "https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=gcLuqKOqrk2sm5o5i5IV55HNZjMP7jpLpt2EMCrmsi1UNVVVQjUwMllDS1hRRlRRQVJKVzRSTTVFMC4u&Token=7a2f41f4072f473c8bf6fa8b634760ca",
-                                    img: "/images/welcome/modelBg.png",
-                                    description:
-                                        "Provide feedback about your experience with GENIE!",
-                                },
-                            ]}
-                        />
+const FEATURES: FeatureCard[] = [
+  {
+    name: "Chatbot",
+    href: "/chatbot/playground",
+    img: "/images/welcome/chatbotWhite.jpg",
+    description: "Ask questions and get help with everyday tasks, using the model of your choice.",
+  },
+  {
+    name: "Ask about your documents",
+    href: "/chatbot/playground",
+    img: "/images/welcome/documents.svg",
+    description: "Upload a PDF, Word file or spreadsheet in the chat and ask questions about it.",
+  },
+  {
+    name: "Compare models",
+    href: "/chatbot/multichat",
+    img: "/images/welcome/multichat.png",
+    description: "Send one prompt to several models and compare their answers side by side.",
+  },
+];
 
-                        <Header
-                            variant="h1"
-                            description="Automate daily tasks with AI driven solutions. Optimize how you summarize, draft, and extract information."
-                        >
-                            Tasks
-                        </Header>
+const LEARNING: FeatureCard[] = [
+  {
+    name: "Learn what generative AI can do",
+    href: "https://youtu.be/jNNatjruXx8?si=dRhLLnnBxiNByon4",
+    img: "/images/welcome/bottom1.png",
+    description: "Discover what generative AI can do and how to write prompts that save you time.",
+    external: true,
+  },
+  {
+    name: "How to upload documents",
+    href: "https://youtu.be/2d-FeSmGzbk",
+    img: "/images/welcome/bottom2.png",
+    description: "A short video on adding documents to the chatbot.",
+    external: true,
+  },
+  {
+    name: "Prompt engineering guide",
+    href: "https://www.promptingguide.ai/",
+    img: "/images/welcome/bottom3.png",
+    description: "How to write clear, specific prompts that get better answers.",
+    external: true,
+  },
+];
 
-                        <div className="task-container">
-                            <CarouselNext theme={theme}></CarouselNext>
-                        </div>
+function ImageCards({ items }: { items: FeatureCard[] }) {
+  const onFollow = useOnFollow();
+  return (
+    <Cards
+      trackBy="name"
+      items={items}
+      cardsPerRow={CARDS_PER_ROW}
+      cardDefinition={{
+        header: (item) => (
+          <Link
+            href={item.href}
+            external={item.external}
+            onFollow={item.external ? undefined : onFollow}
+            fontSize="heading-m"
+          >
+            {item.name}
+          </Link>
+        ),
+        sections: [
+          {
+            id: "image",
+            content: (item) => (
+              // Decorative: the card title already says what it is
+              <img
+                src={item.img}
+                alt=""
+                style={{
+                  display: "block",
+                  width: "100%",
+                  aspectRatio: IMAGE_ASPECT_RATIO,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                }}
+              />
+            ),
+          },
+          {
+            id: "description",
+            content: (item) => <Box color="text-body-secondary">{item.description}</Box>,
+          },
+        ],
+      }}
+    />
+  );
+}
 
-                        <Container
-                            header={
-                                <Header
-                                    variant="h2"
-                                    description="Explore our comprehensive library of learning materials designed to enhance your skills in generative AI, prompt engineering, and other cutting-edge AI technologies. Dive into tutorials, guides, and interactive courses tailored for all levels, from beginners to advanced practitioners."
-                                >
-                                    Learn More
-                                </Header>
-                            }>
-                            <Cards
-                                cardDefinition={{
-                                    header: (item) => (
-                                        <Link
-                                            href={item.href}
-                                            external={item.external}
-                                            fontSize="heading-m"
-                                        >
-                                            {item.name}
-                                        </Link>
-                                    ),
-                                    sections: [
-                                        {
-                                            content: (item) => (
-                                                <div style={{minHeight: '200px'}}>
-                                                    <img
-                                                        src={item.img}
-                                                        alt="Placeholder"
-                                                        style={{
-                                                            width: "100%",
-                                                            height: '180px',
-                                                            objectFit: 'cover',
-                                                            borderRadius: '20px'
-                                                        }}
-                                                    />
-                                                </div>
-                                            ),
-                                        },
-                                        {
-                                            content: (item) => (
-                                                <div>
-                                                    <div>{item.description}</div>
-                                                </div>
-                                            ),
-                                        },
-                                        {
-                                            id: "type",
-                                            header: " ",
-                                            content: (item) => item.type,
-                                        },
-                                    ],
-                                }}
-                                cardsPerRow={[{cards: 1}, {minWidth: 700, cards: 3}]}
-                                items={[
-                                    {
-                                        name: "Learn What Generative AI Can Do",
-                                        type: " ",
-                                        external: true,
-                                        href: "https://youtu.be/jNNatjruXx8?si=dRhLLnnBxiNByon4",
-                                        img: "/images/welcome/bottom1.png",
-                                        description:
-                                            "Discover the capabilities of generative AI and learn how to craft effective prompts to enhance productivity.",
-                                        tags: [""],
-                                    },
-                                    {
-                                        name: "How to Upload Documents to the Chatbot",
-                                        type: " ",
-                                        external: true,
-                                        href: "https://youtu.be/2d-FeSmGzbk",
-                                        img: "/images/welcome/bottom2.png",
-                                        description:
-                                            "Learn how to upload documents to the chatbot!",
-                                    },
-                                    {
-                                        name: "Prompt Engineering Guide",
-                                        external: true,
-                                        type: " ",
-                                        href: "https://www.promptingguide.ai/",
-                                        img: "/images/welcome/bottom3.png",
-                                        description:
-                                            "Prompt engineering is the skill of crafting clear and specific questions to get the best answers from an AI system.",
-                                    },
-                                ]}
-                            />
-                        </Container>
-                    </SpaceBetween>
-                </ContentLayout>
-            }
-        />
-    );
+export default function Welcome() {
+  const onFollow = useOnFollow();
+
+  return (
+    <BaseAppLayout
+      breadcrumbs={
+        <BreadcrumbGroup onFollow={onFollow} items={[{ text: CHATBOT_NAME, href: "/" }]} />
+      }
+      content={
+        <ContentLayout
+          header={
+            <Header
+              variant="h1"
+              description="Chat with leading AI models, ask questions about your documents, and compare answers side by side."
+              actions={
+                <RouterButton iconAlign="right" iconName="contact" variant="primary" href="/documentation/doc">
+                  Getting started
+                </RouterButton>
+              }
+            >
+              Welcome to GENIE
+            </Header>
+          }
+        >
+          <SpaceBetween size="xxl">
+            <ImageCards items={FEATURES} />
+
+            <SpaceBetween size="m">
+              <Header
+                variant="h2"
+                description="Pick a task to start a chat that already knows what you need."
+              >
+                Tasks
+              </Header>
+              <TaskGrid />
+            </SpaceBetween>
+
+            <Container
+              header={
+                <Header variant="h2" description="Short videos and guides for getting more out of generative AI.">
+                  Learn more
+                </Header>
+              }
+            >
+              <ImageCards items={LEARNING} />
+            </Container>
+          </SpaceBetween>
+        </ContentLayout>
+      }
+    />
+  );
 }

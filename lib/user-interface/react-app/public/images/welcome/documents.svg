@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="presentation" aria-hidden="true">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.55" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- document -->
+    <path d="M196 70h120l52 52v168a12 12 0 0 1-12 12H196a12 12 0 0 1-12-12V82a12 12 0 0 1 12-12z"/>
+    <path d="M316 70v40a12 12 0 0 0 12 12h40"/>
+    <path d="M216 160h120M216 194h120M216 228h84"/>
+    <!-- speech bubble with robot face -->
+    <path d="M392 150h86a20 20 0 0 1 20 20v62a20 20 0 0 1-20 20h-44l-30 26v-26h-12a20 20 0 0 1-20-20v-62a20 20 0 0 1 20-20z"/>
+    <circle cx="414" cy="198" r="11"/>
+    <circle cx="456" cy="198" r="11"/>
+    <path d="M422 226q13 10 26 0"/>
+    <path d="M435 150v-22"/>
+    <circle cx="435" cy="118" r="9"/>
+  </g>
+</svg>

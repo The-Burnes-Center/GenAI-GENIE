@@ -44,7 +44,7 @@ function App() {
         <div style={{ height: "56px", backgroundColor: "#000716" }}>&nbsp;</div>
         <div>
           <Routes>
-            <Route index path="/" element={<Welcome theme={theme}/>} />
+            <Route index path="/" element={<Welcome />} />
             <Route path="/chatbot" element={<Outlet />}>
                             
               <Route path="playground" element={<Playground />} />

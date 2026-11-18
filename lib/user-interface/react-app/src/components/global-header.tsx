@@ -69,6 +69,8 @@ export default function GlobalHeader({theme, setTheme}) {
             type: "menu-dropdown",
             description: userName ?? "",
             iconName: "user-profile",
+            ariaLabel: "Account menu",
+            title: "Account",
             onItemClick: onUserProfileClick,
             items: [
               {

@@ -106,6 +106,7 @@ export default function Sessions(props: SessionsProps) {
   return (
     <>
       <Modal
+        closeAriaLabel="Close dialog"
         onDismiss={() => setShowModalDelete(false)}
         visible={showModalDelete}
         footer={
@@ -131,6 +132,7 @@ export default function Sessions(props: SessionsProps) {
           : `${selectedItems.length} sessions?`}
       </Modal>
       <Modal
+        closeAriaLabel="Close dialog"
         onDismiss={() => setDeleteAllSessions(false)}
         visible={deleteAllSessions}
         footer={
