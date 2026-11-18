@@ -32,3 +32,32 @@ export function isDocumentFile(file: Pick<ImageFile, "key">): boolean {
 export function isImageName(fileName: string): boolean {
   return IMAGE_EXTENSIONS.includes(getFileExtension(fileName));
 }
+
+export type FileKind = "pdf" | "doc" | "sheet" | "text" | "web" | "image" | "other";
+
+export interface FileTypeInfo {
+  kind: FileKind; // picks the tile color
+  badge: string; // short letters shown on the tile
+  label: string; // plain-language type shown under the name
+}
+
+const FILE_TYPES: Record<string, FileTypeInfo> = {
+  pdf: { kind: "pdf", badge: "PDF", label: "PDF" },
+  doc: { kind: "doc", badge: "DOC", label: "Word document" },
+  docx: { kind: "doc", badge: "DOC", label: "Word document" },
+  xls: { kind: "sheet", badge: "XLS", label: "Spreadsheet" },
+  xlsx: { kind: "sheet", badge: "XLS", label: "Spreadsheet" },
+  csv: { kind: "sheet", badge: "CSV", label: "Spreadsheet" },
+  txt: { kind: "text", badge: "TXT", label: "Text file" },
+  md: { kind: "text", badge: "MD", label: "Markdown" },
+  html: { kind: "web", badge: "HTML", label: "Web page" },
+};
+
+export function getFileTypeInfo(fileName: string): FileTypeInfo {
+  const extension = getFileExtension(fileName);
+  if (FILE_TYPES[extension]) return FILE_TYPES[extension];
+  if (IMAGE_EXTENSIONS.includes(extension)) {
+    return { kind: "image", badge: extension.slice(0, 4).toUpperCase(), label: "Image" };
+  }
+  return { kind: "other", badge: "FILE", label: "File" };
+}

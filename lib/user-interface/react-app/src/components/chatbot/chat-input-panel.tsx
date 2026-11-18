@@ -6,7 +6,6 @@ import {
   SelectProps,
   Spinner,
   StatusIndicator,
-  TokenGroup,
 } from "@cloudscape-design/components";
 import {
   Dispatch,
@@ -36,6 +35,7 @@ import composer from "../../styles/composer.module.scss";
 import ConfigDialog from "./config-dialog";
 import { useAttachFiles } from "./use-attach-files";
 import { isDocumentFile } from "./documents";
+import { DropOverlay, FileChip, FileChipList } from "./file-chip";
 import {
   ChabotInputModality,
   ChatBotHeartbeatRequest,
@@ -148,23 +148,13 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
          modelsResult = await apiClient.models.getModels();
        }
        const models = modelsResult.data ? modelsResult.data.listModels : [];
-       // save meta model data to local storage as default
-       let defaultModel = '';
-       if (models.length) {
-         const smartModel = models.find((m) => m.name === "Smart Model");
-         if (smartModel) {
-           defaultModel = smartModel.id;
-         }
-       }
+       // The model picker's default is chosen by the effect below (getSelectedModelOption).
+       // Setting selectedModel here too raced it and could leave the picker blank.
        setState((prevState) => ({
          ...prevState,
          models,
          workspaces,
          workspacesStatus,
-         selectedModel: {
-           label: defaultModel,
-           value: defaultModel,
-         },
        }));
      } catch (error) {
        console.error('Error fetching models or workspaces:', error);
@@ -555,30 +545,24 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
   return (
     <div className={composer.composer}>
       <Container>
-        {attachedFiles.length > 0 && (
+        {(attachedFiles.length > 0 || attach.pending.length > 0) && (
           <div className={composer.attachments}>
-            <TokenGroup
-              alignment="horizontal"
-              items={attachedFiles.map((file) => {
-                const isDoc = isDocumentFile(file);
-                const label = file.name ?? (isDoc ? "Document" : "Image");
-                return {
-                  label,
-                  ...(isDoc || !previewUrl(file.key)
-                    ? { iconName: "file" as const }
-                    : { iconUrl: previewUrl(file.key), iconAlt: "" }),
-                  dismissLabel: `Remove ${label}`,
-                };
-              })}
-              onDismiss={({ detail: { itemIndex } }) =>
-                removeFile(attachedFiles[itemIndex].key)
-              }
-              limit={5}
-              i18nStrings={{
-                limitShowFewer: "Show fewer files",
-                limitShowMore: "Show more files",
-              }}
-            />
+            <FileChipList label="Attached files">
+              {[
+                ...attachedFiles.map((file) => {
+                  const name = file.name ?? (isDocumentFile(file) ? "Document" : "Image");
+                  return (
+                    <FileChip
+                      key={file.key}
+                      name={name}
+                      previewUrl={isDocumentFile(file) ? undefined : previewUrl(file.key)}
+                      onRemove={() => removeFile(file.key)}
+                    />
+                  );
+                }),
+                ...attach.pending.map((item) => <FileChip key={item.id} name={item.name} pending />),
+              ]}
+            </FileChipList>
             {unreadable.length > 0 && !isSmartModel && (
               <div className={composer.fallback_note}>
                 <Box variant="small" color="text-body-secondary">
@@ -601,6 +585,7 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
           onChange={(e) =>
             setState((state) => ({ ...state, value: e.target.value }))
           }
+          onPaste={attach.onPaste}
           onKeyDown={(e) => {
             if (e.key == "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -747,6 +732,8 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
       </div>
 
       {attach.fileInput}
+
+      {attach.dragging && <DropOverlay />}
       <ConfigDialog
         sessionId={props.session.id}
         visible={configDialogVisible}

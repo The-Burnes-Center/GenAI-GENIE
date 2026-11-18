@@ -1,5 +1,13 @@
 import { Storage } from "aws-amplify";
-import { ChangeEvent, Dispatch, SetStateAction, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  ClipboardEvent,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   ATTACH_ACCEPT,
@@ -14,6 +22,11 @@ import { ChatBotConfiguration, FileStorageProvider, ImageFile } from "./types";
 
 const MAX_DOCUMENT_MB = MAX_DOCUMENT_BYTES / 1_000_000;
 const MAX_IMAGE_MB = MAX_IMAGE_BYTES / 1_000_000;
+
+export interface PendingFile {
+  id: string;
+  name: string;
+}
 
 function validate(selected: File[], alreadyAttached: number): string | null {
   if (alreadyAttached + selected.length > MAX_FILES_PER_MESSAGE) {
@@ -45,35 +58,92 @@ async function upload(file: File): Promise<ImageFile> {
   };
 }
 
-// Attach opens the system file picker directly; chosen files upload and appear as chips in the composer.
+const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes("Files") ?? false;
+
+// Files arrive three ways: the Attach button (system file picker), dropping them anywhere on
+// the page, or pasting them into the message box. Each file shows as a chip while it uploads.
 export function useAttachFiles(
   configuration: ChatBotConfiguration,
   setConfiguration: Dispatch<SetStateAction<ChatBotConfiguration>>
 ) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [pending, setPending] = useState<PendingFile[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const onChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files ?? []);
-    event.target.value = ""; // so choosing the same file again still fires
+  const addFiles = async (selected: File[]) => {
     if (selected.length === 0) return;
-
-    const problem = validate(selected, (configuration.files ?? []).length);
+    const problem = validate(selected, (configuration.files ?? []).length + pending.length);
     setError(problem);
     if (problem) return;
 
-    setUploading(true);
-    try {
-      const uploaded: ImageFile[] = [];
-      for (const file of selected) uploaded.push(await upload(file));
-      setConfiguration((previous) => ({ ...previous, files: [...(previous.files ?? []), ...uploaded] }));
-    } catch (uploadError) {
-      console.error("Error uploading file:", uploadError);
-      setError("The upload failed. Please try again.");
-    } finally {
-      setUploading(false);
+    const queued = selected.map((file) => ({ id: uuidv4(), name: file.name, file }));
+    setPending((previous) => [...previous, ...queued.map(({ id, name }) => ({ id, name }))]);
+    for (const { id, file } of queued) {
+      try {
+        const uploaded = await upload(file);
+        setConfiguration((previous) => ({ ...previous, files: [...(previous.files ?? []), uploaded] }));
+      } catch (uploadError) {
+        console.error("Error uploading file:", uploadError);
+        setError(`"${file.name}" did not upload. Please try again.`);
+      } finally {
+        setPending((previous) => previous.filter((item) => item.id !== id));
+      }
     }
+  };
+
+  // Window listeners outlive a render, so they call the latest addFiles through a ref
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+
+  useEffect(() => {
+    let depth = 0; // dragenter/dragleave fire for every child element crossed
+    const onDragEnter = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      depth += 1;
+      setDragging(true);
+    };
+    const onDragOver = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault(); // allows the drop instead of the browser opening the file
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    };
+    const onDragLeave = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragging(false);
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      depth = 0;
+      setDragging(false);
+      addFilesRef.current(Array.from(event.dataTransfer?.files ?? []));
+    };
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragleave", onDragLeave);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragleave", onDragLeave);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
+
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = ""; // so choosing the same file again still fires
+    addFiles(selected);
+  };
+
+  // Pasting a copied file or screenshot attaches it; pasting text still types as usual
+  const onPaste = (event: ClipboardEvent) => {
+    const pasted = Array.from(event.clipboardData?.files ?? []);
+    if (pasted.length === 0) return;
+    event.preventDefault();
+    addFiles(pasted);
   };
 
   const fileInput = (
@@ -92,7 +162,10 @@ export function useAttachFiles(
   return {
     openPicker: () => inputRef.current?.click(),
     fileInput,
-    uploading,
+    onPaste,
+    pending,
+    uploading: pending.length > 0,
+    dragging,
     error,
     clearError: () => setError(null),
   };

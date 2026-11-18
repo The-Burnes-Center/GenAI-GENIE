@@ -3,7 +3,6 @@ import {
     Button,
     Container,
     ExpandableSection,
-    Icon,
     Popover,
     Spinner,
     StatusIndicator,
@@ -28,6 +27,7 @@ import {
 
 import {getSignedUrl} from "./utils";
 import {isDocumentFile} from "./documents";
+import {FileChip, FileChipList} from "./file-chip";
 import * as awsui from "@cloudscape-design/design-tokens";
 
 import "react-json-view-lite/dist/index.css";
@@ -350,60 +350,30 @@ export default function ChatMessage(props: ChatMessageProps) {
             )}
             {files.length > 0 && !loading && (
                 // Files sent with the message sit right-aligned above the user's bubble
-                <div
-                    style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        justifyContent: "flex-end",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 8,
-                    }}
-                >
-                    {files.map((file, idx) => {
-                        const name = file.name ?? (isDocumentFile(file) ? "Document" : "Image");
-                        return isDocumentFile(file) ? (
-                            <a
-                                key={idx}
-                                href={file.url as string}
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-label={`Open ${name} in a new tab`}
-                                style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    padding: "4px 10px",
-                                    borderRadius: 8,
-                                    border: `1px solid ${awsui.colorBorderDividerDefault}`,
-                                    background: awsui.colorBackgroundContainerContent,
-                                    color: awsui.colorTextLinkDefault,
-                                    textDecoration: "none",
-                                    maxWidth: 260,
-                                }}
-                            >
-                                <Icon name="file" />
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {name}
-                                </span>
-                            </a>
-                        ) : (
-                            <a key={idx} href={file.url as string} target="_blank" rel="noreferrer" aria-label={`Open ${name} in a new tab`}>
-                                <img
-                                    src={file.url as string}
-                                    alt={name}
-                                    style={{
-                                        display: "block",
-                                        maxHeight: 120,
-                                        maxWidth: 200,
-                                        objectFit: "cover",
-                                        borderRadius: 8,
-                                        border: `1px solid ${awsui.colorBorderDividerDefault}`,
-                                    }}
-                                />
-                            </a>
-                        );
-                    })}
+                <div style={{ marginBottom: 8 }}>
+                    <FileChipList label="Attached files" alignEnd>
+                        {files.map((file) => {
+                            const name = file.name ?? (isDocumentFile(file) ? "Document" : "Image");
+                            return isDocumentFile(file) ? (
+                                <FileChip key={file.key} name={name} href={file.url as string} />
+                            ) : (
+                                <a key={file.key} href={file.url as string} target="_blank" rel="noreferrer" aria-label={`Open ${name} in a new tab`}>
+                                    <img
+                                        src={file.url as string}
+                                        alt={name}
+                                        style={{
+                                            display: "block",
+                                            maxHeight: 120,
+                                            maxWidth: 200,
+                                            objectFit: "cover",
+                                            borderRadius: 12,
+                                            border: `1px solid ${awsui.colorBorderDividerDefault}`,
+                                        }}
+                                    />
+                                </a>
+                            );
+                        })}
+                    </FileChipList>
                 </div>
             )}
 

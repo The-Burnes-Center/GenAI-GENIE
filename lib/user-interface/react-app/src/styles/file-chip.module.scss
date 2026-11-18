@@ -1,0 +1,149 @@
+@use "@cloudscape-design/design-tokens/index" as awsui;
+
+// Attachment cards: a colored tile with the file type's letters, then the name and type.
+// White tile letters keep at least 4.5:1 contrast on every tile color.
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: awsui.$space-scaled-xs;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list_end {
+  justify-content: flex-end;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 248px;
+  max-width: 100%;
+  padding: 6px 6px 6px 6px;
+  border: 1px solid awsui.$color-border-divider-default;
+  border-radius: 12px;
+  background: awsui.$color-background-container-content;
+  color: awsui.$color-text-body-default;
+  text-decoration: none;
+}
+
+a.chip {
+  padding-right: 12px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &:hover {
+    background: awsui.$color-background-dropdown-item-hover;
+    border-color: awsui.$color-border-dropdown-item-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid awsui.$color-border-item-focused;
+    outline-offset: 2px;
+  }
+}
+
+.tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.pdf {
+  background: #d93025;
+}
+.doc {
+  background: #1a5fd0;
+}
+.sheet {
+  background: #107c41;
+}
+.text {
+  background: #5f6368;
+}
+.web {
+  background: #c2410c;
+}
+.image,
+.other {
+  background: #7c3aed;
+}
+
+.details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type {
+  color: awsui.$color-text-body-secondary;
+  font-size: awsui.$font-size-body-s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.chip {
+    transition: none;
+  }
+}
+
+// Drag-and-drop overlay. pointer-events: none lets the window drop handler receive the drop.
+.drop_overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 20, 26, 0.45);
+  pointer-events: none;
+}
+
+.drop_card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 40px;
+  border: 2px dashed awsui.$color-border-item-focused;
+  border-radius: 16px;
+  background: awsui.$color-background-container-content;
+  color: awsui.$color-text-body-default;
+  text-align: center;
+}
+
+.drop_tiles {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.drop_title {
+  font-size: 18px;
+  font-weight: 700;
+}
