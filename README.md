@@ -50,6 +50,12 @@ The RAG setup allows users to upload documents and perform search queries, ensur
 
 For more information, visit the [AWS GenAI LLM Chatbot](https://aws-samples.github.io/aws-genai-llm-chatbot/).
 
+## Models and running cost
+
+Every model is called through the Amazon Bedrock Converse API. The list lives in `CURATED_BEDROCK_MODELS` in `lib/shared/layers/python-sdk/python/genai_core/models.py`: Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5, Amazon Nova 2 Lite and Nova Pro, Llama 4 Maverick, Mistral Large 3, gpt-oss 120B, DeepSeek V3.2, Qwen3 Next 80B, GPT-6.2 Sol and Grok 4.7. Claude and Nova models accept images. The Smart Model routes each prompt to one of these with Claude Haiku 5.5.
+
+With RAG, SageMaker models and the private website turned off (the default), the stack creates no VPC, NAT gateway or interface endpoints, so an idle deployment costs about a dollar a month. Model use is billed per request. Turning on any of those features brings the VPC back.
+
 ## Deployment Guide
 
 See the [deployment guide](docs/guide/deploy.md).

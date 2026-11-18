@@ -33,9 +33,11 @@ export class ApiResolvers extends Construct {
   constructor(scope: Construct, id: string, props: ApiResolversProps) {
     super(scope, id);
 
-    const apiSecurityGroup = new ec2.SecurityGroup(this, "ApiSecurityGroup", {
-      vpc: props.shared.vpc,
-    });
+    const apiSecurityGroup = props.shared.hasVpc
+      ? new ec2.SecurityGroup(this, "ApiSecurityGroup", {
+          vpc: props.shared.vpc,
+        })
+      : undefined;
 
     const appSyncLambdaResolver = new lambda.Function(
       this,
@@ -52,9 +54,9 @@ export class ApiResolvers extends Construct {
         tracing: lambda.Tracing.ACTIVE,
         logRetention: logs.RetentionDays.ONE_WEEK,
         layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
-        vpc: props.shared.vpc,
-        securityGroups: [apiSecurityGroup],
-        vpcSubnets: props.shared.vpc.privateSubnets as ec2.SubnetSelection,
+        ...props.shared.lambdaVpcProps(
+          apiSecurityGroup ? [apiSecurityGroup] : undefined
+        ),
         environment: {
           ...props.shared.defaultEnvironmentVariables,
           CONFIG_PARAMETER_NAME: props.shared.configParameter.parameterName,

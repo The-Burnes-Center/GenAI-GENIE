@@ -80,7 +80,9 @@ export class PrivateWebsite extends Construct {
     })
 
     if (props.config.vpc?.createVpcEndpoints) {
-        vpcEndpoints.node.addDependency(props.shared.s3vpcEndpoint)
+        if (props.shared.s3vpcEndpoint) {
+          vpcEndpoints.node.addDependency(props.shared.s3vpcEndpoint);
+        }
     }
 
     // Then, retrieve the Private IP Addresses for each ENI of the VPC Endpoint

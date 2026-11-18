@@ -1,6 +1,17 @@
 import * as cdk from "aws-cdk-lib";
 import * as appsync from "aws-cdk-lib/aws-appsync";
-import { Code, Function, LayerVersion, Runtime } from "aws-cdk-lib/aws-lambda";
+import {
+  Code,
+  Function,
+  LayerVersion,
+  Runtime,
+  RuntimeFamily,
+} from "aws-cdk-lib/aws-lambda";
+
+// The pinned aws-cdk-lib predates Runtime.NODEJS_22_X; Node 18 is retired.
+const NODEJS_22 = new Runtime("nodejs22.x", RuntimeFamily.NODEJS, {
+  supportsInlineCode: true,
+});
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Construct } from "constructs";
 import { Shared } from "../shared";
@@ -42,7 +53,7 @@ export class RealtimeResolvers extends Construct {
         SNS_TOPIC_ARN: props.topic.topicArn,
       },
       layers: [props.shared.powerToolsLayer],
-      vpc: props.shared.vpc
+      ...props.shared.lambdaVpcProps(),
     });
 
     const outgoingMessageHandler = new NodejsFunction(
@@ -55,11 +66,11 @@ export class RealtimeResolvers extends Construct {
         ),
         layers: [powertoolsLayerJS],
         handler: "index.handler",
-        runtime: Runtime.NODEJS_18_X,
+        runtime: NODEJS_22,
         environment: {
           GRAPHQL_ENDPOINT: props.api.graphqlUrl,
         },
-        vpc: props.shared.vpc
+        ...props.shared.lambdaVpcProps(),
       }
     );
 

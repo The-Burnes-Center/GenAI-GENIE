@@ -106,7 +106,14 @@ export class AwsGenAILLMChatbotStack extends cdk.Stack {
       (model) => model.interface === ModelInterface.MultiModal
     );
 
-    // check if any deployed model requires idefics interface
+    // Image chats with Bedrock models (Claude, Nova) read files straight from S3.
+    // SageMaker IDEFICS models fetched them through a private API in the VPC,
+    // which was removed to drop the idle network cost.
+    if (ideficsModels.length > 0) {
+      throw new Error(
+        "SageMaker IDEFICS models are no longer supported. Use a Bedrock model with image input (Claude or Nova)."
+      );
+    }
 
     const ideficsInterface = new IdeficsInterface(this, "IdeficsInterface", {
       shared,
@@ -191,8 +198,6 @@ export class AwsGenAILLMChatbotStack extends cdk.Stack {
         `/${this.stackName}/ChatBotApi/Realtime/Resolvers/outgoing-message-handler/ServiceRole/DefaultPolicy/Resource`,
         `/${this.stackName}/IdeficsInterface/IdeficsInterfaceRequestHandler/ServiceRole/DefaultPolicy/Resource`,
         `/${this.stackName}/IdeficsInterface/IdeficsInterfaceRequestHandler/ServiceRole/Resource`,
-        `/${this.stackName}/IdeficsInterface/ChatbotFilesPrivateApi/CloudWatchRole/Resource`,
-        `/${this.stackName}/IdeficsInterface/S3IntegrationRole/DefaultPolicy/Resource`,
       ],
       [
         {
@@ -205,28 +210,6 @@ export class AwsGenAILLMChatbotStack extends cdk.Stack {
         },
       ]
     );
-    NagSuppressions.addResourceSuppressionsByPath(
-      this,
-      `/${this.stackName}/IdeficsInterface/ChatbotFilesPrivateApi/DeploymentStage.prod/Resource`,
-      [
-        {
-          id: "AwsSolutions-APIG3",
-          reason: "WAF not required due to configured Cognito auth.",
-        },
-      ]
-    );
-    NagSuppressions.addResourceSuppressionsByPath(
-      this,
-      [
-        `/${this.stackName}/IdeficsInterface/ChatbotFilesPrivateApi/Default/{object}/ANY/Resource`,
-        `/${this.stackName}/IdeficsInterface/ChatbotFilesPrivateApi/Default/{object}/ANY/Resource`,
-      ],
-      [
-        { id: "AwsSolutions-APIG4", reason: "Private API within a VPC." },
-        { id: "AwsSolutions-COG4", reason: "Private API within a VPC." },
-      ]
-    );
-
     // RAG configuration
     if (props.config.rag.enabled) {
       NagSuppressions.addResourceSuppressionsByPath(

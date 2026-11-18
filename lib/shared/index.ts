@@ -20,7 +20,11 @@ export interface SharedProps {
 }
 
 export class Shared extends Construct {
-  readonly vpc: ec2.Vpc;
+  // Only RAG, SageMaker models and the private website need a VPC. Without
+  // one, the chat functions run outside a VPC and there is no NAT gateway or
+  // interface endpoint to pay for while idle.
+  readonly hasVpc: boolean;
+  private readonly _vpc?: ec2.Vpc;
   readonly defaultEnvironmentVariables: Record<string, string>;
   readonly configParameter: ssm.StringParameter;
   readonly pythonRuntime: lambda.Runtime = pythonRuntime;
@@ -30,7 +34,7 @@ export class Shared extends Construct {
   readonly commonLayer: lambda.ILayerVersion;
   readonly powerToolsLayer: lambda.ILayerVersion;
   readonly sharedCode: SharedAssetBundler;
-  readonly s3vpcEndpoint: ec2.InterfaceVpcEndpoint;
+  readonly s3vpcEndpoint?: ec2.InterfaceVpcEndpoint;
 
   constructor(scope: Construct, id: string, props: SharedProps) {
     super(scope, id);
@@ -44,155 +48,17 @@ export class Shared extends Construct {
       POWERTOOLS_SERVICE_NAME: "chatbot",
     };
 
-    let vpc: ec2.Vpc;
-    if (!props.config.vpc?.vpcId) {
-      vpc = new ec2.Vpc(this, "VPC", {
-        natGateways: 1,
-        restrictDefaultSecurityGroup: false,
-        subnetConfiguration: [
-          {
-            name: "public",
-            subnetType: ec2.SubnetType.PUBLIC,
-          },
-          {
-            name: "private",
-            subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          },
-          {
-            name: "isolated",
-            subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-          },
-        ],
-      });
-      const logGroup = new logs.LogGroup(this, "FLowLogsLogGroup", {
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      });
-      new ec2.FlowLog(this, "FlowLog", {
-        resourceType: ec2.FlowLogResourceType.fromVpc(vpc),
-        destination: ec2.FlowLogDestination.toCloudWatchLogs(logGroup),
-      });
-    } else {
-      vpc = ec2.Vpc.fromLookup(this, "VPC", {
-        vpcId: props.config.vpc.vpcId,
-      }) as ec2.Vpc;
-    }
+    const config = props.config;
+    this.hasVpc =
+      config.rag.enabled ||
+      config.llms.sagemaker.length > 0 ||
+      config.privateWebsite === true ||
+      Boolean(config.vpc?.vpcId);
 
-    if (
-      typeof props.config.vpc?.createVpcEndpoints === "undefined" ||
-      props.config.vpc?.createVpcEndpoints === true
-    ) {
-      // Create a VPC endpoint for S3.
-      const s3GatewayEndpoint = vpc.addGatewayEndpoint("S3GatewayEndpoint", {
-        service: ec2.GatewayVpcEndpointAwsService.S3,
-      });
-
-      const s3vpcEndpoint = vpc.addInterfaceEndpoint("S3InterfaceEndpoint", {
-        service: ec2.InterfaceVpcEndpointAwsService.S3,
-        privateDnsEnabled: true,
-        open: true,
-      });
-      
-      this.s3vpcEndpoint = s3vpcEndpoint;
-
-      s3vpcEndpoint.node.addDependency(s3GatewayEndpoint);
-
-      // Create a VPC endpoint for DynamoDB.
-      vpc.addGatewayEndpoint("DynamoDBEndpoint", {
-        service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
-      });
-
-      // Create VPC Endpoint for Secrets Manager
-      vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
-        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-        open: true,
-      });
-
-      // Create VPC Endpoint for SageMaker Runtime
-      vpc.addInterfaceEndpoint("SageMakerRuntimeEndpoint", {
-        service: ec2.InterfaceVpcEndpointAwsService.SAGEMAKER_RUNTIME,
-        open: true,
-      });
-
-      if (props.config.privateWebsite) {
-        // Create VPC Endpoint for AppSync
-        vpc.addInterfaceEndpoint("AppSyncEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.APP_SYNC,
-        });
-
-        // Create VPC Endpoint for Lambda
-        vpc.addInterfaceEndpoint("LambdaEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.LAMBDA,
-        });
-
-        // Create VPC Endpoint for SNS
-        vpc.addInterfaceEndpoint("SNSEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.SNS,
-        });
-
-        // Create VPC Endpoint for Step Functions
-        vpc.addInterfaceEndpoint("StepFunctionsEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS,
-        });
-
-        // Create VPC Endpoint for SSM
-        vpc.addInterfaceEndpoint("SSMEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.SSM,
-        });
-
-        // Create VPC Endpoint for KMS
-        vpc.addInterfaceEndpoint("KMSEndpoint", {
-            service: ec2.InterfaceVpcEndpointAwsService.KMS,
-        });
-
-        // Create VPC Endpoint for Bedrock
-        if (props.config.bedrock?.enabled && Object.values(SupportedBedrockRegion).some(val => val === cdk.Stack.of(this).region)){
-          if (props.config.bedrock?.region !== cdk.Stack.of(this).region) {
-            throw new Error(`Bedrock is only supported in the same region as the stack when using private website (Bedrock region: ${props.config.bedrock?.region}, Stack region: ${cdk.Stack.of(this).region}).`);
-          }
-          vpc.addInterfaceEndpoint("BedrockEndpoint", {
-            service: new ec2.InterfaceVpcEndpointService('com.amazonaws.'+cdk.Aws.REGION+'.bedrock-runtime', 443),
-            privateDnsEnabled: true
-          });
-        }
-
-        // Create VPC Endpoint for Kendra
-        if (props.config.rag.engines.kendra.enabled){
-          vpc.addInterfaceEndpoint("KendraEndpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.KENDRA,
-          });
-        }
-
-        // Create VPC Endpoint for RDS/Aurora
-        if (props.config.rag.engines.aurora.enabled) {
-          vpc.addInterfaceEndpoint("RDSEndpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.RDS,
-          });
-
-          // Create VPC Endpoint for RDS Data
-          vpc.addInterfaceEndpoint("RDSDataEndpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.RDS_DATA,
-          });
-        }
-
-        // Create VPC Endpoints needed for Aurora & Opensearch Indexing
-        if (props.config.rag.engines.aurora.enabled ||
-          props.config.rag.engines.opensearch.enabled) {
-          // Create VPC Endpoint for ECS
-          vpc.addInterfaceEndpoint("ECSEndpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.ECS,
-          });
-
-          // Create VPC Endpoint for Batch
-          vpc.addInterfaceEndpoint("BatchEndpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.BATCH,
-          });
-
-          // Create VPC Endpoint for EC2
-          vpc.addInterfaceEndpoint("EC2Endpoint", {
-              service: ec2.InterfaceVpcEndpointAwsService.EC2,
-          });
-        }
-      }
+    if (this.hasVpc) {
+      const network = this.createVpc(config);
+      this._vpc = network.vpc;
+      this.s3vpcEndpoint = network.s3vpcEndpoint;
     }
 
     const configParameter = new ssm.StringParameter(this, "Config", {
@@ -238,7 +104,6 @@ export class Shared extends Construct {
       secretObjectValue: {},
     });
 
-    this.vpc = vpc;
     this.configParameter = configParameter;
     this.xOriginVerifySecret = xOriginVerifySecret;
     this.apiKeysSecret = apiKeysSecret;
@@ -258,5 +123,183 @@ export class Shared extends Construct {
     NagSuppressions.addResourceSuppressions(apiKeysSecret, [
       { id: "AwsSolutions-SMG4", reason: "Secret value is blank." },
     ]);
+  }
+
+  get vpc(): ec2.Vpc {
+    if (!this._vpc) {
+      throw new Error(
+        "This feature needs a VPC. Enable RAG, a SageMaker model or the private website, or set vpc.vpcId."
+      );
+    }
+    return this._vpc;
+  }
+
+  // Spread into a lambda.Function's props: VPC placement only when a VPC exists.
+  lambdaVpcProps(
+    securityGroups?: ec2.ISecurityGroup[]
+  ): Pick<lambda.FunctionProps, "vpc" | "vpcSubnets" | "securityGroups"> {
+    if (!this._vpc) return {};
+    return {
+      vpc: this._vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      ...(securityGroups ? { securityGroups } : {}),
+    };
+  }
+
+  private createVpc(config: SystemConfig): {
+    vpc: ec2.Vpc;
+    s3vpcEndpoint?: ec2.InterfaceVpcEndpoint;
+  } {
+      let vpc: ec2.Vpc;
+      let s3vpcEndpoint: ec2.InterfaceVpcEndpoint | undefined;
+      if (!config.vpc?.vpcId) {
+        vpc = new ec2.Vpc(this, "VPC", {
+          natGateways: 1,
+          restrictDefaultSecurityGroup: false,
+          subnetConfiguration: [
+            {
+              name: "public",
+              subnetType: ec2.SubnetType.PUBLIC,
+            },
+            {
+              name: "private",
+              subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            },
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+            },
+          ],
+        });
+        const logGroup = new logs.LogGroup(this, "FLowLogsLogGroup", {
+          removalPolicy: cdk.RemovalPolicy.DESTROY,
+        });
+        new ec2.FlowLog(this, "FlowLog", {
+          resourceType: ec2.FlowLogResourceType.fromVpc(vpc),
+          destination: ec2.FlowLogDestination.toCloudWatchLogs(logGroup),
+        });
+      } else {
+        vpc = ec2.Vpc.fromLookup(this, "VPC", {
+          vpcId: config.vpc.vpcId,
+        }) as ec2.Vpc;
+      }
+  
+      if (
+        typeof config.vpc?.createVpcEndpoints === "undefined" ||
+        config.vpc?.createVpcEndpoints === true
+      ) {
+        // Create a VPC endpoint for S3.
+        const s3GatewayEndpoint = vpc.addGatewayEndpoint("S3GatewayEndpoint", {
+          service: ec2.GatewayVpcEndpointAwsService.S3,
+        });
+  
+        s3vpcEndpoint = vpc.addInterfaceEndpoint("S3InterfaceEndpoint", {
+          service: ec2.InterfaceVpcEndpointAwsService.S3,
+          privateDnsEnabled: true,
+          open: true,
+        });
+        
+  
+        s3vpcEndpoint.node.addDependency(s3GatewayEndpoint);
+  
+        // Create a VPC endpoint for DynamoDB.
+        vpc.addGatewayEndpoint("DynamoDBEndpoint", {
+          service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+        });
+  
+        // Create VPC Endpoint for Secrets Manager
+        vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
+          service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+          open: true,
+        });
+  
+        // Create VPC Endpoint for SageMaker Runtime
+        vpc.addInterfaceEndpoint("SageMakerRuntimeEndpoint", {
+          service: ec2.InterfaceVpcEndpointAwsService.SAGEMAKER_RUNTIME,
+          open: true,
+        });
+  
+        if (config.privateWebsite) {
+          // Create VPC Endpoint for AppSync
+          vpc.addInterfaceEndpoint("AppSyncEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.APP_SYNC,
+          });
+  
+          // Create VPC Endpoint for Lambda
+          vpc.addInterfaceEndpoint("LambdaEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.LAMBDA,
+          });
+  
+          // Create VPC Endpoint for SNS
+          vpc.addInterfaceEndpoint("SNSEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.SNS,
+          });
+  
+          // Create VPC Endpoint for Step Functions
+          vpc.addInterfaceEndpoint("StepFunctionsEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS,
+          });
+  
+          // Create VPC Endpoint for SSM
+          vpc.addInterfaceEndpoint("SSMEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.SSM,
+          });
+  
+          // Create VPC Endpoint for KMS
+          vpc.addInterfaceEndpoint("KMSEndpoint", {
+              service: ec2.InterfaceVpcEndpointAwsService.KMS,
+          });
+  
+          // Create VPC Endpoint for Bedrock
+          if (config.bedrock?.enabled && Object.values(SupportedBedrockRegion).some(val => val === cdk.Stack.of(this).region)){
+            if (config.bedrock?.region !== cdk.Stack.of(this).region) {
+              throw new Error(`Bedrock is only supported in the same region as the stack when using private website (Bedrock region: ${config.bedrock?.region}, Stack region: ${cdk.Stack.of(this).region}).`);
+            }
+            vpc.addInterfaceEndpoint("BedrockEndpoint", {
+              service: new ec2.InterfaceVpcEndpointService('com.amazonaws.'+cdk.Aws.REGION+'.bedrock-runtime', 443),
+              privateDnsEnabled: true
+            });
+          }
+  
+          // Create VPC Endpoint for Kendra
+          if (config.rag.engines.kendra.enabled){
+            vpc.addInterfaceEndpoint("KendraEndpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.KENDRA,
+            });
+          }
+  
+          // Create VPC Endpoint for RDS/Aurora
+          if (config.rag.engines.aurora.enabled) {
+            vpc.addInterfaceEndpoint("RDSEndpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.RDS,
+            });
+  
+            // Create VPC Endpoint for RDS Data
+            vpc.addInterfaceEndpoint("RDSDataEndpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.RDS_DATA,
+            });
+          }
+  
+          // Create VPC Endpoints needed for Aurora & Opensearch Indexing
+          if (config.rag.engines.aurora.enabled ||
+            config.rag.engines.opensearch.enabled) {
+            // Create VPC Endpoint for ECS
+            vpc.addInterfaceEndpoint("ECSEndpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.ECS,
+            });
+  
+            // Create VPC Endpoint for Batch
+            vpc.addInterfaceEndpoint("BatchEndpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.BATCH,
+            });
+  
+            // Create VPC Endpoint for EC2
+            vpc.addInterfaceEndpoint("EC2Endpoint", {
+                service: ec2.InterfaceVpcEndpointAwsService.EC2,
+            });
+          }
+        }
+      }
+    return { vpc, s3vpcEndpoint };
   }
 }

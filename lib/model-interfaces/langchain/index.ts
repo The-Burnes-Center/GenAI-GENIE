@@ -31,7 +31,7 @@ export class LangChainInterface extends Construct {
     super(scope, id);
 
     const requestHandler = new lambda.Function(this, "RequestHandler", {
-      vpc: props.shared.vpc,
+      ...props.shared.lambdaVpcProps(),
       code: props.shared.sharedCode.bundleWithLambdaAsset(
         path.join(__dirname, "./functions/request-handler")
       ),
