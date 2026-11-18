@@ -18,10 +18,10 @@ export function PasskeyPrompt() {
     >
       <h2 id="passkey-prompt-title" className="flex items-center gap-2 text-body font-semibold">
         <Fingerprint size={20} className="text-accent" aria-hidden="true" />
-        Sign in faster next time
+        Add a passkey
       </h2>
       <p className="text-ink-2">
-        Use Face ID, Touch ID or a security key instead of typing a password. It takes a few seconds to set up.
+        Sign in with Face ID, Touch ID or a security key instead of a password.
       </p>
       {error && <p role="alert" className="text-danger">{error}</p>}
       <div className="flex flex-wrap gap-2">

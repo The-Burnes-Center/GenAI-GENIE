@@ -48,7 +48,7 @@ export function AccountPage() {
       <Section
         id="acct-passkeys"
         title="Passkeys"
-        lead="A passkey lets you sign in with Face ID, Touch ID or a security key. It is faster than a password and can't be guessed or phished."
+        lead="Sign in with Face ID, Touch ID or a security key instead of a password."
       >
         <PasskeyList />
       </Section>

@@ -15,7 +15,7 @@ export const SETTINGS_HELP = {
 export const DEFAULT_SETTINGS: Settings = {
   appName: "Genie",
   welcomeTitle: "How can I help today?",
-  welcomeMessage: "Chat with leading AI models, compare their answers, or ask questions about your own documents.",
+  welcomeMessage: "",
   disclaimer: "AI can make mistakes. Check important information before relying on it.",
   defaultModelId: DEFAULT_MODEL_ID,
   dailyMessageLimit: 0,

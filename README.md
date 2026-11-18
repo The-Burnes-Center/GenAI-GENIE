@@ -1,8 +1,8 @@
 # Genie
 
-Genie is a private AI workspace for public-sector and nonprofit teams. Staff chat with current AI models in one place, attach files, compare models side by side, start from ready-made templates, and ask questions about their own documents with sources shown. Admins run everything from an in-app console.
+Genie is an open-source, multi-model AI chat app that you deploy to your own AWS account. It supports file attachments, side-by-side model comparison, prompt templates, and question answering over your own documents with citations. Admins manage users, models and settings from the app.
 
-It runs entirely in your AWS account on serverless services, so it costs cents a month when nobody is using it.
+It is fully serverless, so an idle deployment costs a few cents a month.
 
 ## What it does
 
