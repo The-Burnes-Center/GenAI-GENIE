@@ -1,3 +1,4 @@
+import { PAGINATION_LABELS } from "../../../common/pagination-labels";
 import {
   BreadcrumbGroup,
   Header,
@@ -5,19 +6,20 @@ import {
   Pagination,
   PropertyFilter,
   Table,
-  Link,
 } from "@cloudscape-design/components";
 import useOnFollow from "../../../common/hooks/use-on-follow";
 import BaseAppLayout from "../../../components/base-app-layout";
-import { useContext, useState, useCallback, useEffect } from "react";
+import { useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { useCollection } from "@cloudscape-design/collection-hooks";
 import { ApiClient } from "../../../common/api-client/api-client";
 import { AppContext } from "../../../common/app-context";
 import { TextHelper } from "../../../common/helpers/text-helper";
+import { ModelDisplayHelper } from "../../../common/helpers/model-display-helper";
 import { PropertyFilterI18nStrings } from "../../../common/i18n/property-filter-i18n-strings";
 import { TableEmptyState } from "../../../components/table-empty-state";
 import { TableNoMatchState } from "../../../components/table-no-match-state";
 import {
+  ModelRow,
   ModelsColumnDefinitions,
   ModelsColumnFilteringProperties,
 } from "./column-definitions";
@@ -25,11 +27,32 @@ import { CHATBOT_NAME } from "../../../common/constants";
 import { Model } from "../../../API";
 import { Utils } from "../../../common/utils";
 
+const SMART_MODEL_NAME = "Smart Model";
+
 export default function Models() {
   const onFollow = useOnFollow();
   const appContext = useContext(AppContext);
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Smart Model comes first, then the rest grouped by provider and name
+  const rows: ModelRow[] = useMemo(() => {
+    return models
+      .map((model) => ({
+        ...model,
+        providerName: ModelDisplayHelper.getProviderName(model),
+        canRead: ModelDisplayHelper.getCanRead(model.inputModalities),
+      }))
+      .sort((a, b) => {
+        if (a.name === SMART_MODEL_NAME) return -1;
+        if (b.name === SMART_MODEL_NAME) return 1;
+        return (
+          a.providerName.localeCompare(b.providerName) ||
+          a.name.localeCompare(b.name)
+        );
+      });
+  }, [models]);
+
   const {
     items,
     actions,
@@ -37,7 +60,7 @@ export default function Models() {
     collectionProps,
     paginationProps,
     propertyFilterProps,
-  } = useCollection(models, {
+  } = useCollection(rows, {
     propertyFiltering: {
       filteringProperties: ModelsColumnFilteringProperties,
       empty: <TableEmptyState resourceName="model" />,
@@ -50,12 +73,7 @@ export default function Models() {
       ),
     },
     pagination: { pageSize: 50 },
-    sorting: {
-      defaultState: {
-        sortingColumn: ModelsColumnDefinitions[0],
-        isDescending: false,
-      },
-    },
+    sorting: {},
     selection: {},
   });
 
@@ -105,39 +123,44 @@ export default function Models() {
           variant="full-page"
           stickyHeader={true}
           resizableColumns={true}
-          header={<Header variant="awsui-h1-sticky">Models</Header>}
+          wrapLines={true}
+          header={
+            <Header
+              variant="awsui-h1-sticky"
+              description="GENIE can use these models. Smart Model picks one for you."
+            >
+              Available models
+            </Header>
+          }
           loading={loading}
-          loadingText="Loading Models"
+          loadingText="Loading models"
           filter={
             <PropertyFilter
               {...propertyFilterProps}
               i18nStrings={PropertyFilterI18nStrings}
-              filteringPlaceholder={"Filter Models"}
+              filteringPlaceholder={"Filter models"}
               countText={TextHelper.getTextFilterCounterText(
                 filteredItemsCount
               )}
               expandToViewport={true}
             />
           }
-          pagination={<Pagination {...paginationProps} />}
+          pagination={<Pagination {...paginationProps} ariaLabels={PAGINATION_LABELS} />}
         />
       }
       info={
-        <HelpPanel header={<Header variant="h3">Foundation Models</Header>}>
+        <HelpPanel header={<Header variant="h3">Available models</Header>}>
           <p>
-            For Amazon Bedrock we display all models available in the selected
-            AWS Region.
+            Not sure which model to use? Start with Smart Model. It picks a
+            model based on your question.
           </p>
           <p>
-            You might need to request access to the models you want to use via
-            the Amazon Bedrock{" "}
-            <Link
-              external
-              href="https://console.aws.amazon.com/bedrock/home?#/modelaccess"
-            >
-              Model access
-            </Link>{" "}
-            page
+            To choose a model yourself, open the model menu under the message
+            box in Chat.
+          </p>
+          <p>
+            "Can read" shows what you can send to a model, such as text, images
+            or documents.
           </p>
         </HelpPanel>
       }

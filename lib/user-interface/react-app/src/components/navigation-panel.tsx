@@ -1,3 +1,4 @@
+import { displayChatTitle } from "../common/helpers/chat-title";
 import {
     SideNavigation,
     SideNavigationProps,
@@ -59,13 +60,17 @@ export default function NavigationPanel() {
 
         loadSessions();
     }, [needsRefresh]);
-    function truncateText(text, charLimit) {
+    // Cut at the last whole word that fits, so a title never ends mid-word
+    function truncateText(text: string, charLimit: number) {
         let cleanText = text.replace(/[^a-zA-Z0-9\s]/g, '');
         cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
-        if (cleanText.length > charLimit) {
-            return cleanText.substring(0, charLimit) + ' [...]';
+        if (cleanText.length <= charLimit) {
+            return cleanText;
         }
-        return cleanText;
+        const cut = cleanText.substring(0, charLimit + 1);
+        const lastSpace = cut.lastIndexOf(' ');
+        const wholeWords = lastSpace > 0 ? cut.substring(0, lastSpace) : cleanText.substring(0, charLimit);
+        return wholeWords.trimEnd() + '…';
     }
 
     const items = useMemo(() => {
@@ -76,27 +81,29 @@ export default function NavigationPanel() {
                     variant="primary"
                     href={`/chatbot/playground/${uuidv4()}`}
                 >
-                    New session
+                    New chat
                 </RouterButton>
             },
             {
                 type: "section",
-                text: "Experiment With AI",
+                text: "Experiment with AI",
                 items: [
-                    {type: "link", text: "Chatbot", href: "/chatbot/playground"},
-                    {type: "link", text: "Compare Different Models", href: "/chatbot/multichat"},
-                    {type: "link", text: "Complete Chat History", href: "/chatbot/sessions"},
-                    {type: "link", text: "Document Upload", href: "/rag/workspaces/"},
-                    {type: "link", text: "Available Models", href: "/chatbot/models"},
+                    {type: "link", text: "Chat", href: "/chatbot/playground"},
+                    {type: "link", text: "Compare models", href: "/chatbot/multichat"},
+                    {type: "link", text: "History", href: "/chatbot/sessions"},
+                    {type: "link", text: "Models", href: "/chatbot/models"},
+                    ...(appContext?.config.rag_enabled
+                        ? [{type: "link" as const, text: "Document Upload", href: "/rag/workspaces/"}]
+                        : []),
                 ],
             },
             {
                 type: "section",
-                text: "Recent Chat History",
+                text: "Recent chats",
                 items: loading ? [{ type: "link", text: "Loading...", href: "#" }] : (
                     sessions.length > 0 ? sessions.map((session) => ({
                         type: "link",
-                        text: `${truncateText(session.title || 'Untitled Session', 35)} - ${new Intl.DateTimeFormat('en-US', {
+                        text: `${truncateText(displayChatTitle(session.title), 35)} - ${new Intl.DateTimeFormat('en-US', {
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',
@@ -118,11 +125,11 @@ export default function NavigationPanel() {
             },
             {
                 type: "section",
-                text: "Explore Task Based AI Solutions",
+                text: "Tasks",
                 items: [
                     {
                         type: "link",
-                        text: "Summarize Text",
+                        text: "Summarize",
                         href: `/chatbot/task-playground/${uuidv4()}/summarize`
                     },
                     {
@@ -132,51 +139,48 @@ export default function NavigationPanel() {
                     },
                     {
                         type: "link",
-                        text: "Create A Meeting Agenda",
+                        text: "Create a meeting agenda",
                         href: `/chatbot/task-playground/${uuidv4()}/meetingAgenda`
                     },
                     {
                         type: "link",
-                        text: "Email Composition Assistant",
+                        text: "Write an email",
                         href: `/chatbot/task-playground/${uuidv4()}/email`
                     },
                     {
                         type: "link",
-                        text: "Draft A Memo",
+                        text: "Draft a memo",
                         href: `/chatbot/task-playground/${uuidv4()}/memo`
                     },
                     {
                         type: "link",
-                        text: "Daily Planning",
+                        text: "Plan my day",
                         href: `/chatbot/task-playground/${uuidv4()}/dailyPlanning`
                     },
                     {
                         type: "link",
-                        text: "Tone Customization",
+                        text: "Change the tone",
                         href: `/chatbot/task-playground/${uuidv4()}/toneCustomization`
                     },
                     {
                         type: "link",
-                        text: "Document Formatting",
+                        text: "Format a document",
                         href: `/chatbot/task-playground/${uuidv4()}/documentFormatting`
                     },
                     {
                         type: "link",
-                        text: "Policy Clarification",
+                        text: "Clarify a policy",
                         href: `/chatbot/task-playground/${uuidv4()}/policyClarification`
                     },
                     {
                         type: "link",
-                        text: "Need Some Positive Affirmation?",
+                        text: "Positive affirmation",
                         href: `/chatbot/task-playground/${uuidv4()}/positiveAffirmation`
                     },
                 ],
             },
         ];
 
-        if (appContext?.config.rag_enabled) {
-            // Add additional items if RAG is enabled
-        }
         return baseItems;
     }, [sessions, loading, appContext?.config.rag_enabled]);
 

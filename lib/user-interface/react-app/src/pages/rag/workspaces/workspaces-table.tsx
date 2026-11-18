@@ -1,3 +1,4 @@
+import { PAGINATION_LABELS } from "../../../common/pagination-labels";
 import {
   Pagination,
   PropertyFilter,
@@ -115,7 +116,7 @@ export default function WorkspacesTable() {
           expandToViewport={true}
         />
       }
-      pagination={<Pagination {...paginationProps} />}
+      pagination={<Pagination {...paginationProps} ariaLabels={PAGINATION_LABELS} />}
     />
   );
 }

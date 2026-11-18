@@ -1,46 +1,48 @@
 import BaseAppLayout from "../../../components/base-app-layout";
 import MultiChat from "../../../components/chatbot/multi-chat";
-import { Header, HelpPanel } from "@cloudscape-design/components";
+import {
+  ContentLayout,
+  Header,
+  HelpPanel,
+} from "@cloudscape-design/components";
 import { Link } from "react-router-dom";
-import {Alert} from "@cloudscape-design/components";
-
 
 export default function MultiChatPlayground() {
   return (
     <BaseAppLayout
       info={
-        <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
+        <HelpPanel header={<Header variant="h3">Using compare models</Header>}>
           <p>
-            The multi-chat playground allows user to interact with up to 4 LLM
-            and RAG <Link to="/rag/workspaces">workspaces</Link> combinations.
+            Each column uses its own model. Choose a model in each column, then
+            type one question. It is sent to every model at once.
           </p>
           <h3>Settings</h3>
           <p>
-            You can configure additional settings for the LLM via the setting
-            action at the bottom-right. You can change the Temperature and Top P
-            values to be used for the answer generation. You can also enable and
-            disable streaming mode for those models that support it (the setting
-            is ignored if the model does not support streaming). Turning on
-            Metadata displays additional information about the answer, such as
-            the prompts being used to interact with the LLM and the document
-            passages that might have been retrieved from the RAG storage.
+            Use the settings button in a column to change options for that
+            model, such as how creative its answers are. Turn on Show details to
+            see extra information about each answer.
           </p>
-          <h3>Session history</h3>
+          <h3>Chat history</h3>
           <p>
-            All individual conversations are saved and can be later accessed via
-            the <Link to="/chatbot/sessions">Session</Link> in the navigation
-            bar. For example, if you have 3 chats, there will be 3 sessions
-            saved in the history.
+            Your conversations are saved. You can find them under{" "}
+            <Link to="/chatbot/sessions">History</Link> in the side menu.
           </p>
         </HelpPanel>
       }
-      content={<div>
-                    <Alert
-                        statusIconAriaLabel="Info"
-                        header="">
-                        AI models may occasionally make errors. Please validate critical information, avoid entering
-                        sensitive data, and refrain from attaching any sensitive documents.
-                    </Alert><MultiChat/></div>}
-        />
-        );
-        }
+      content={
+        <ContentLayout
+          header={
+            <Header
+              variant="h1"
+              description="Ask once and see answers from two or more models side by side."
+            >
+              Compare models
+            </Header>
+          }
+        >
+          <MultiChat />
+        </ContentLayout>
+      }
+    />
+  );
+}

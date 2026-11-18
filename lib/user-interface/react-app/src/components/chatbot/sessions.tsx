@@ -1,3 +1,5 @@
+import { displayChatTitle } from "../../common/helpers/chat-title";
+import { PAGINATION_LABELS } from "../../common/pagination-labels";
 import {
   Box,
   SpaceBetween,
@@ -124,12 +126,13 @@ export default function Sessions(props: SessionsProps) {
             </SpaceBetween>{" "}
           </Box>
         }
-        header={"Delete session" + (selectedItems.length > 1 ? "s" : "")}
+        header={"Delete chat" + (selectedItems.length > 1 ? "s" : "")}
       >
         Do you want to delete{" "}
         {selectedItems.length == 1
-          ? `session ${selectedItems[0].id}?`
-          : `${selectedItems.length} sessions?`}
+          ? `"${selectedItems[0].title}"?`
+          : `${selectedItems.length} chats?`}{" "}
+        This cannot be undone.
       </Modal>
       <Modal
         closeAriaLabel="Close dialog"
@@ -151,9 +154,9 @@ export default function Sessions(props: SessionsProps) {
             </SpaceBetween>{" "}
           </Box>
         }
-        header={"Delete all sessions"}
+        header={"Delete all chats"}
       >
-        {`Do you want to delete ${sessions.length} sessions?`}
+        {`Do you want to delete all ${sessions.length} chats? This cannot be undone.`}
       </Modal>
       <Table
         {...collectionProps}
@@ -181,10 +184,11 @@ export default function Sessions(props: SessionsProps) {
             } selected`,
           itemSelectionLabel: (e, item) => item.title!,
         }}
-        pagination={<Pagination {...paginationProps} />}
+        pagination={<Pagination {...paginationProps} ariaLabels={PAGINATION_LABELS} />}
         loadingText="Loading history"
         loading={isLoading}
         resizableColumns
+        wrapLines
         stickyHeader={true}
         preferences={
           <CollectionPreferences
@@ -207,7 +211,7 @@ export default function Sessions(props: SessionsProps) {
         }
         header={
           <Header
-            description="List of past sessions"
+            description="Your past chats. Open one to continue it, or delete the ones you no longer need."
             variant="awsui-h1-sticky"
             actions={
               <SpaceBetween direction="horizontal" size="m" alignItems="center">
@@ -216,7 +220,7 @@ export default function Sessions(props: SessionsProps) {
                   href={`/chatbot/playground/${uuidv4()}`}
                   variant="inline-link"
                 >
-                  New session
+                  New chat
                 </RouterButton>
                 <Button
                   iconAlt="Refresh list"
@@ -239,29 +243,40 @@ export default function Sessions(props: SessionsProps) {
                 </Button>
                 <Button
                   disabled={sessions.length == 0}
-                  iconAlt="Delete all sessions"
+                  iconAlt="Delete all chats"
                   iconName="delete-marker"
                   variant="inline-link"
                   onClick={() => {setDeleteAllSessions(true)}}
                 >
-                  Delete all sessions
+                  Delete all chats
                 </Button>
               </SpaceBetween>
             }
           >
-            Session History
+            Chat history
           </Header>
         }
         columnDefinitions={
           [
             {
               id: "title",
-              header: "Title",
+              header: "Chat",
               sortingField: "title",
-              width: 800,
-              minWidth: 200,
+              minWidth: 160,
+              // Long saved prompts are clamped to two lines so rows stay a readable height
               cell: (e) => (
-                <Link to={`/chatbot/playground/${e.id}`}>{e.title}</Link>
+                <Link
+                  to={`/chatbot/playground/${e.id}`}
+                  title={displayChatTitle(e.title)}
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {displayChatTitle(e.title)}
+                </Link>
               ),
               isRowHeader: true,
             },
@@ -269,10 +284,14 @@ export default function Sessions(props: SessionsProps) {
               id: "startTime",
               header: "Time",
               sortingField: "startTime",
-              cell: (e: Session) =>
-                DateTime.fromISO(
-                  new Date(e.startTime).toISOString()
-                ).toLocaleString(DateTime.DATETIME_SHORT),
+              width: 150,
+              minWidth: 120,
+              // Short form such as "Nov 18, 1:24 PM" so it fits on one line
+              cell: (e: Session) => (
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {DateTime.fromISO(new Date(e.startTime).toISOString()).toFormat("LLL d, h:mm a")}
+                </span>
+              ),
               sortingComparator: (a, b) => {
                 return (
                   new Date(b.startTime).getTime() -

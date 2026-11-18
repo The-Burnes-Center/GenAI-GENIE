@@ -14,6 +14,7 @@ import {
   Toggle,
   StatusIndicator,
   Container,
+  Box,
 } from "@cloudscape-design/components";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
@@ -370,25 +371,27 @@ export default function MultiChat() {
   return (
     <div className={styles.chat_container}>
       <SpaceBetween size="m">
-        <SpaceBetween size="m" alignItems="end">
+        <Container>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <Box color="text-body-secondary">Choose a model for each column, then ask your question below.</Box>
           <SpaceBetween size="m" direction="horizontal" alignItems="center">
-            <StatusIndicator
-              type={
-                readyState === ReadyState.OPEN
-                  ? "success"
-                  : readyState === ReadyState.CONNECTING ||
-                    readyState === ReadyState.UNINSTANTIATED
-                  ? "in-progress"
-                  : "error"
-              }
-            >
-              {readyState === ReadyState.OPEN ? "Connected" : connectionStatus}
-            </StatusIndicator>
+            {readyState !== ReadyState.OPEN && (
+              <StatusIndicator
+                type={
+                  readyState === ReadyState.CONNECTING ||
+                  readyState === ReadyState.UNINSTANTIATED
+                    ? "in-progress"
+                    : "error"
+                }
+              >
+                {connectionStatus}
+              </StatusIndicator>
+            )}
             <Toggle
               checked={showMetadata ?? false}
               onChange={({ detail }) => setShowMetadata(detail.checked)}
             >
-              Show Metadata
+              Show details
             </Toggle>
             <Button
               onClick={() => addSession()}
@@ -413,7 +416,8 @@ export default function MultiChat() {
               Clear messages
             </Button>
           </SpaceBetween>
-        </SpaceBetween>
+          </div>
+        </Container>
         <ColumnLayout columns={chatSessions.length}>
           {chatSessions.map((chatSession) => (
             <Container key={chatSession.id}>
@@ -454,11 +458,13 @@ export default function MultiChat() {
                     <Button
                       iconName="settings"
                       variant="icon"
+                      ariaLabel="Model settings"
                       onClick={() => setLlmToConfig(chatSession)}
                     />
                     <Button
                       iconName="remove"
                       variant="icon"
+                      ariaLabel="Remove this model"
                       disabled={chatSessions.length <= 2 || messages.length > 0}
                       onClick={() => {
                         refChatSessions.current
@@ -536,6 +542,12 @@ export default function MultiChat() {
           enabled={enabled}
           onSendMessage={handleSendMessage}
         />
+        <div style={{ textAlign: "center", paddingTop: 8 }}>
+          <Box color="text-body-secondary">
+            GENIE can make mistakes. Check important information, and don't enter
+            sensitive data.
+          </Box>
+        </div>
       </div>
     </div>
   );

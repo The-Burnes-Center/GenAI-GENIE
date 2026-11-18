@@ -1,74 +1,115 @@
-import React from "react";
+import { ContentLayout, Header, SpaceBetween, Container, Box } from "@cloudscape-design/components";
+import BaseAppLayout from "../../components/base-app-layout";
 
-const FeaturesOfGenie: React.FC = () => {
+const READING_WIDTH = "760px";
+
+export default function Documentation() {
   return (
-    <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen text-white p-8 font-sans">
-      <header className="text-center mb-12">
-        <h1 className="text-4xl font-bold underline decoration-pink-300">Welcome to GENIE</h1>
-        <p className="mt-4 text-lg">Your AI-powered assistant for productivity and insights.</p>
-      </header>
+    <BaseAppLayout
+      contentType="default"
+      content={
+        <ContentLayout
+          header={
+            <Header
+              variant="h1"
+              description="A short guide to GENIE, an AI assistant for everyday work."
+            >
+              Getting started
+            </Header>
+          }
+        >
+          <div style={{ maxWidth: READING_WIDTH, marginInline: "auto" }}>
+            <SpaceBetween size="l">
+              <Container header={<Header variant="h2">What GENIE is</Header>}>
+                <Box variant="p">
+                  GENIE is an AI assistant. Type a question or a request, and it
+                  writes an answer. You can also attach a file, such as a PDF or
+                  a Word document, and ask questions about what is in it.
+                </Box>
+              </Container>
 
-      <section className="mb-12">
-        <h2 className="text-3xl font-semibold mb-4">🔹 Chatbot Features</h2>
-        <ul className="list-disc pl-8 space-y-2">
-          <li>
-            <strong className="text-pink-300">Ask Questions:</strong> Type any question to get answers, just like a search engine.
-          </li>
-          <li>
-            <strong className="text-pink-300">Document Insights:</strong> Upload files and query specific information within them.
-          </li>
-        </ul>
-      </section>
+              <Container header={<Header variant="h2">Start a chat</Header>}>
+                <ol>
+                  <li>Type your question in the box at the bottom of the page.</li>
+                  <li>Press Enter to send it. Press Shift and Enter to start a new line.</li>
+                  <li>
+                    Smart Model is selected by default. It picks a model that
+                    suits your question.
+                  </li>
+                  <li>
+                    To choose a model yourself, open the model menu under the
+                    message box.
+                  </li>
+                </ol>
+              </Container>
 
-      <section className="mb-12">
-        <h2 className="text-3xl font-semibold mb-4">🔹 Bottom Bar Navigation</h2>
-        <ul className="list-disc pl-8 space-y-2">
-          <li>
-            <strong>Smart Model:</strong> Automatically picks the best AI model for your queries, with manual selection options.
-          </li>
-          <li>
-            <strong>Basic Chat:</strong> Use this mode without selecting a workspace for general queries.
-          </li>
-          <li>
-            <strong>Workspaces:</strong> Access files by selecting the workspace where they were uploaded.
-          </li>
-        </ul>
-      </section>
+              <Container header={<Header variant="h2">Ask about a document</Header>}>
+                <ol>
+                  <li>Click Attach in the message box.</li>
+                  <li>
+                    Choose a PDF, Word, Excel, CSV or text file, or an image. You
+                    can attach up to 5 files.
+                  </li>
+                  <li>Type your question and send it.</li>
+                  <li>
+                    Follow-up questions keep the file, so you can keep asking
+                    about it without attaching it again.
+                  </li>
+                </ol>
+              </Container>
 
-      <section className="mb-12">
-        <h2 className="text-3xl font-semibold mb-4">🔹 Uploading Documents</h2>
-        <p className="mb-4">Upload files to query them in the chatbot:</p>
-        <ol className="list-decimal pl-8 space-y-2">
-          <li>Click <strong className="text-pink-300">“Upload Document.”</strong></li>
-          <li>Choose <strong className="text-pink-300">“Upload Files.”</strong></li>
-          <li>Select the file(s) you want to upload.</li>
-          <li>Navigate to the Chatbot and select the related workspace.</li>
-          <li>Ask your questions about the uploaded document(s).</li>
-        </ol>
-        <p className="mt-4">
-          <strong>Workspaces:</strong> Think of them as folders where your uploaded files are stored for easy access.
-        </p>
-      </section>
+              <Container header={<Header variant="h2">Use a task</Header>}>
+                <Box variant="p">
+                  On the home page, pick a task such as Summarize text or Draft a
+                  memo. GENIE starts a chat that is already set up for that job,
+                  so you only need to add your material.
+                </Box>
+              </Container>
 
-      <section className="mb-12">
-        <h2 className="text-3xl font-semibold mb-4">🔹 Multi-Chat Playground</h2>
-        <p className="mb-4">Compare responses from different AI models side by side:</p>
-        <ol className="list-decimal pl-8 space-y-2">
-          <li>Select models for each panel.</li>
-          <li>Choose a workspace or use Basic Chat mode.</li>
-          <li>Enter your question.</li>
-          <li>Compare the results across models.</li>
-          <li>Add more panels with <strong className="text-pink-300">“Add Model.”</strong></li>
-        </ol>
-      </section>
+              <Container header={<Header variant="h2">Compare models</Header>}>
+                <Box variant="p">
+                  Use Compare models in the side menu to ask one question and see
+                  the answers from two or more models side by side. Choose a model
+                  for each column, type your question, and send it.
+                </Box>
+              </Container>
 
-      <footer className="text-center mt-12">
-        <p className="text-sm">
-          Explore <span className="text-pink-300">video tutorials</span> and <span className="text-pink-300">resources</span> for more tips.
-        </p>
-      </footer>
-    </div>
+              <Container header={<Header variant="h2">History</Header>}>
+                <Box variant="p">
+                  Your past chats are saved under History in the side menu. Open
+                  one to pick up where you left off. You can also delete chats you
+                  no longer need.
+                </Box>
+              </Container>
+
+              <Container header={<Header variant="h2">Tips for good results</Header>}>
+                <ul>
+                  <li>
+                    Be specific. "Summarize the key dates in this contract" works
+                    better than "Help me."
+                  </li>
+                  <li>
+                    Give context, such as who the answer is for and what you will
+                    use it for.
+                  </li>
+                  <li>
+                    Check important facts before you rely on them, especially
+                    numbers, names and dates.
+                  </li>
+                  <li>
+                    Never enter sensitive personal information, such as Social
+                    Security numbers, bank details, passwords or health records.
+                  </li>
+                  <li>
+                    Use the thumbs up and thumbs down buttons under an answer to
+                    tell GENIE whether it helped.
+                  </li>
+                </ul>
+              </Container>
+            </SpaceBetween>
+          </div>
+        </ContentLayout>
+      }
+    />
   );
-};
-
-export default FeaturesOfGenie;
+}

@@ -5,53 +5,35 @@ import {
 } from "@cloudscape-design/collection-hooks";
 import { Model } from "../../../API";
 
-export const ModelsColumnDefinitions: TableProps.ColumnDefinition<Model>[] = [
-  {
-    id: "provider",
-    header: "Provider",
-    sortingField: "provider",
-    cell: (item: Model) => item.provider,
-  },
+// A model row with the display values the table and filter use
+export type ModelRow = Model & {
+  providerName: string;
+  canRead: string;
+};
+
+export const ModelsColumnDefinitions: TableProps.ColumnDefinition<ModelRow>[] = [
   {
     id: "name",
     header: "Name",
     sortingField: "name",
-    cell: (item: Model) => item.name,
+    cell: (item: ModelRow) => item.name,
     isRowHeader: true,
   },
   {
-    id: "ragSupported",
-    header: "RAG Supported",
-    sortingField: "ragSupported",
-    cell: (item: Model) => (item.ragSupported ? "Yes" : "No"),
+    id: "provider",
+    header: "Provider",
+    sortingField: "providerName",
+    cell: (item: ModelRow) => item.providerName,
   },
   {
-    id: "inputModalities",
-    header: "Input modalities",
-    sortingField: "inputModalities",
-    cell: (item: Model) => item.inputModalities.join(", "),
-  },
-  {
-    id: "outputModalities",
-    header: "Output modalities",
-    sortingField: "outputModalities",
-    cell: (item: Model) => item.outputModalities.join(", "),
-  },
-  {
-    id: "streaming",
-    header: "Streaming",
-    sortingField: "streaming",
-    cell: (item: Model) => (item.streaming ? "Yes" : "No"),
+    id: "canRead",
+    header: "Can read",
+    sortingField: "canRead",
+    cell: (item: ModelRow) => item.canRead,
   },
 ];
 
 export const ModelsColumnFilteringProperties: PropertyFilterProperty[] = [
-  {
-    propertyLabel: "Provider",
-    key: "provider",
-    groupValuesLabel: "Provider values",
-    operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
-  },
   {
     propertyLabel: "Name",
     key: "name",
@@ -59,27 +41,15 @@ export const ModelsColumnFilteringProperties: PropertyFilterProperty[] = [
     operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
   },
   {
-    propertyLabel: "RAG Supported",
-    key: "ragSupported",
-    groupValuesLabel: "RAG Supported values",
+    propertyLabel: "Provider",
+    key: "providerName",
+    groupValuesLabel: "Provider values",
     operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
   },
   {
-    propertyLabel: "Input modalities",
-    key: "inputModalities",
-    groupValuesLabel: "Input modalities values",
-    operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
-  },
-  {
-    propertyLabel: "Output modalities",
-    key: "outputModalities",
-    groupValuesLabel: "Output modalities values",
-    operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
-  },
-  {
-    propertyLabel: "Streaming",
-    key: "streaming",
-    groupValuesLabel: "Streaming values",
+    propertyLabel: "Can read",
+    key: "canRead",
+    groupValuesLabel: "Can read values",
     operators: [":", "!:", "=", "!="] as PropertyFilterOperator[],
   },
 ].sort((a, b) => a.propertyLabel.localeCompare(b.propertyLabel));

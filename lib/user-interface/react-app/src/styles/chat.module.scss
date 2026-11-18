@@ -194,7 +194,14 @@
 .thumbsContainer {
   display: flex;
   align-items: center;
+  gap: awsui.$space-scaled-xs;
   margin-top: 8px;
+
+  // WCAG 2.5.8: feedback targets are at least 24x24 CSS px, with 8px between them
+  button {
+    min-width: 32px;
+    min-height: 32px;
+  }
 }
 
 .thumbsIcon {
@@ -203,14 +210,14 @@
   opacity: 0.5;
 }
 
-/* Styles for thumbs up icon. Should be compatible with dark theme */
+/* Styles for thumbs up icon. Uses theme tokens so it works in dark mode */
 .thumbsUp {
-  color: #539fe5;
+  color: awsui.$color-text-interactive-default;
 }
 
-/* Styles for thumbs down icon. Should be compatible with dark theme */
+/* Styles for thumbs down icon. Uses theme tokens so it works in dark mode */
 .thumbsDown {
-  color: #539fe5;
+  color: awsui.$color-text-interactive-default;
 }
 
 /* Style for clicked state */
@@ -226,8 +233,8 @@
 }
 
 .input_message {
-  background-color: #f2f8fd; /* Light blue background */
-  color: #000000; /* black text */
+  background-color: awsui.$color-background-item-selected;
+  color: awsui.$color-text-body-default;
   padding: 10px 15px;
   border-radius: 15px;
   max-width: 60%;

@@ -107,14 +107,14 @@ export default function LLMConfigDialog(props: LLMConfigDialogProps) {
               Enabled (if supported by the model)
             </Toggle>
           </FormField>
-          <FormField label="Metadata" errorText={errors.showMetadata}>
+          <FormField label="Details" errorText={errors.showMetadata}>
             <Toggle
               checked={data.showMetadata}
               onChange={({ detail: { checked } }) =>
                 onChange({ showMetadata: checked })
               }
             >
-              Show metadata
+              Show details
             </Toggle>
           </FormField>
           <FormField

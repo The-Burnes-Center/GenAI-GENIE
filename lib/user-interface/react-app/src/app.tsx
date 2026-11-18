@@ -2,6 +2,7 @@ import { useContext } from "react";
 import {
   BrowserRouter,
   HashRouter,
+  Navigate,
   Outlet,
   Route,
   Routes,
@@ -55,7 +56,16 @@ function App() {
               <Route path="multichat" element={<MultiChatPlayground />} />
               <Route path="models" element={<Models />} />
             </Route>
-            <Route path="/rag" element={<Outlet />}>
+            <Route
+              path="/rag"
+              element={
+                appContext?.config.rag_enabled ? (
+                  <Outlet />
+                ) : (
+                  <Navigate to="/chatbot/playground" replace />
+                )
+              }
+            >
               <Route path="" element={<Dashboard />} />
               <Route path="engines" element={<Engines />} />
               <Route path="embeddings" element={<Embeddings />} />

@@ -9,6 +9,26 @@ import { Auth } from "@aws-amplify/auth";
 import useOnFollow from "../common/hooks/use-on-follow";
 import { CHATBOT_NAME } from "../common/constants";
 
+const MOON_ICON = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+    <path
+      d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SUN_ICON = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="8" cy="8" r="3" />
+      <path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1" />
+    </g>
+  </svg>
+);
 
 export default function GlobalHeader({theme, setTheme}) {
   const onFollow = useOnFollow();
@@ -57,12 +77,14 @@ export default function GlobalHeader({theme, setTheme}) {
         identity={{
           href: "/",
           title: "EOTSS GENIE" ,
-          logo: { src: "/images/stateseal-color.png", alt: { CHATBOT_NAME } + " Logo" },
+          logo: { src: "/images/stateseal-color.png", alt: CHATBOT_NAME + " logo" },
         }}
         utilities={[
           {
             type: "button",
-            text: theme === Mode.Dark ? "Light Mode" : "Dark Mode",
+            text: theme === Mode.Dark ? "Light mode" : "Dark mode",
+            ariaLabel: theme === Mode.Dark ? "Switch to light mode" : "Switch to dark mode",
+            iconSvg: theme === Mode.Dark ? SUN_ICON : MOON_ICON,
             onClick: onChangeThemeClick,
           },
           {
