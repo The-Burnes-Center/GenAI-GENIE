@@ -1,7 +1,14 @@
-import type { ModelEntry, Settings, Template } from "./types.js";
+import type { LearnLink, ModelEntry, Settings, Template } from "./types.js";
 
-export const DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-5-5";
-export const TITLE_MODEL_ID = "us.anthropic.claude-haiku-5-5";
+export const HAIKU_MODEL_ID = "us.anthropic.claude-haiku-5-5";
+export const SONNET_MODEL_ID = "us.anthropic.claude-sonnet-5-5";
+/**
+ * Haiku 5.5 is the default because it costs about a twentieth of Sonnet 5.5 per message and matched it on everyday
+ * staff tasks (plain-language rewrites, emails, agendas) in a side-by-side run on 2026-11-18. Sonnet and Opus stay
+ * one click away for harder work.
+ */
+export const DEFAULT_MODEL_ID = HAIKU_MODEL_ID;
+export const TITLE_MODEL_ID = HAIKU_MODEL_ID;
 
 /** retrievalTopK default before 2026-11-17; a stored value equal to it is treated as never customized. */
 export const OLD_RETRIEVAL_TOP_K = 8;
@@ -12,13 +19,40 @@ export const SETTINGS_HELP = {
     "Midnight in this time zone resets the daily message limit. Changing it mid-day starts a fresh count for the new day.",
 } as const;
 
+/** Base instructions for every chat, sent before any template prompt. Admins edit them in settings. */
+export const DEFAULT_ASSISTANT_INSTRUCTIONS = [
+  "You are Genie, an AI assistant for public servants at work. Many of the people using you are new to AI.",
+  "- Write in plain, everyday language with short sentences. Explain any term a non-expert might not know.",
+  '- If a request is unclear and a wrong guess would waste the person\'s time, ask one short question first. Otherwise answer, and say what you assumed.',
+  '- Be honest about uncertainty. When you are not sure, say "I\'m not sure" in your own voice and say what to check. Never invent names, numbers, dates, quotes, laws, policies or sources.',
+  "- When your answer includes names, numbers, dates, or legal or policy references, remind the person to check them against the original source before they send, sign or act on them.",
+  "- You cannot browse the web or see anything outside this chat, and you may not know about recent events. Say so when it matters.",
+  '- If someone asks what you can do or how to use Genie: they can attach documents and images with the paperclip button, compare answers from two or three AI models side by side (Compare), start from ready-made templates (Templates), ask questions about a shared set of documents and get cited sources (Workspaces), and turn on "Think harder" for tricky questions on models that support it. The Learn page has tips for getting started.',
+  "- Do not ask for personal information about residents or coworkers, passwords, or anything confidential. If someone shares it anyway, still help with their request, then briefly remind them not to share that kind of information.",
+].join("\n");
+
+export const DEFAULT_DATA_RULES: string[] = [
+  "Personal information about residents or coworkers, like Social Security numbers, case files, or health and financial records",
+  "Passwords, access codes or keys",
+  "Anything your agency marks confidential or would not share publicly",
+];
+
+export const DEFAULT_LEARN_LINKS: LearnLink[] = [
+  {
+    title: "Responsible AI for Public Professionals",
+    url: "https://innovate-us.org/course/responsible-ai-for-public-professionals",
+    description: "A free InnovateUS course with hands-on activities on using generative AI at work and avoiding the risks.",
+  },
+];
+
 export const DEFAULT_SETTINGS: Settings = {
   appName: "Genie",
   welcomeTitle: "How can I help today?",
   welcomeMessage: "",
   disclaimer: "AI can make mistakes. Check important information before relying on it.",
   defaultModelId: DEFAULT_MODEL_ID,
-  dailyMessageLimit: 0,
+  // A ceiling on cost per person; admins can raise it or set 0 for unlimited.
+  dailyMessageLimit: 100,
   titleModelId: TITLE_MODEL_ID,
   maxCompareModels: 3,
   signupMode: "off",
@@ -27,6 +61,10 @@ export const DEFAULT_SETTINGS: Settings = {
   retrievalTopK: 15,
   timezone: "America/New_York",
   templateCategories: ["Writing", "Summaries", "Planning", "Communication", "Policy", "Translation"],
+  assistantInstructions: DEFAULT_ASSISTANT_INSTRUCTIONS,
+  dataRules: DEFAULT_DATA_RULES,
+  learnLinks: DEFAULT_LEARN_LINKS,
+  helpContact: "",
 };
 
 type Caps = ModelEntry["capabilities"];
@@ -39,9 +77,9 @@ type ModelSeed = Pick<ModelEntry, "modelId" | "label" | "provider" | "descriptio
 // Verified callable in us-east-1 on 2026-11-17. Non-Claude context windows are conservative estimates;
 // the chat handler also recovers from a too-long rejection, so they are not trusted blindly.
 const MODEL_SEEDS: ModelSeed[] = [
-  { modelId: DEFAULT_MODEL_ID, label: "Claude Sonnet 5.5", provider: "Anthropic", description: "Balanced intelligence and speed. The default.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
-  { modelId: "us.anthropic.claude-opus-5-5", label: "Claude Opus 5.5", provider: "Anthropic", description: "Most capable Claude model for hard problems.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
-  { modelId: TITLE_MODEL_ID, label: "Claude Haiku 5.5", provider: "Anthropic", description: "Fastest and lowest cost Claude model.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
+  { modelId: HAIKU_MODEL_ID, label: "Claude Haiku 5.5", provider: "Anthropic", description: "Fast and low cost. Good for everyday writing and questions. The default.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
+  { modelId: SONNET_MODEL_ID, label: "Claude Sonnet 5.5", provider: "Anthropic", description: "Stronger on harder questions and long documents. Costs more than Haiku.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
+  { modelId: "us.anthropic.claude-opus-5-5", label: "Claude Opus 5.5", provider: "Anthropic", description: "Most capable, for the hardest problems. The highest cost Claude model.", capabilities: caps(true, true, true, false, true), contextWindow: 1_000_000, maxOutputTokens: 128_000 },
   { modelId: "global.openai.gpt-6.2-sol", label: "GPT-6.2 Sol", provider: "OpenAI", description: "OpenAI frontier model.", capabilities: caps(false, false, false, false, false), contextWindow: 200_000, maxOutputTokens: 32_000 },
   { modelId: "openai.gpt-oss-120b-1:0", label: "gpt-oss 120B", provider: "OpenAI", description: "Open-weight reasoning model.", capabilities: caps(false, false, false, true, false), contextWindow: 128_000, maxOutputTokens: 32_000 },
   { modelId: "us.amazon.nova-pro-v1:0", label: "Nova Pro", provider: "Amazon", description: "Amazon multimodal model.", capabilities: caps(true, true, false, true, true), contextWindow: 300_000, maxOutputTokens: 10_000 },

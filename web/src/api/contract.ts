@@ -40,10 +40,14 @@ export type ContractChecks = [
   Expect<Equals<Web.WorkspaceVisibility, Domain.Workspace['visibility']>>,
   Expect<Equals<Web.ChatMode, Domain.SessionMode>>,
   Expect<Equals<Web.Rating, NonNullable<Domain.Message['feedback']>['rating']>>,
+  Expect<Equals<Web.HintId, Domain.HintId>>,
+  Expect<Equals<Web.LearnLink, Domain.LearnLink>>,
 
   // Response bodies
   Expect<Equals<Web.Me, Api.MeResponse>>,
   Expect<Equals<Web.PublicConfig, Api.PublicConfigResponse>>,
+  Expect<Equals<Web.HintsResponse, Api.HintsResponse>>,
+  Expect<Equals<Web.RewriteResponse, Api.RewriteResponse>>,
   Expect<Equals<Web.DailyUsage, Api.DailyUsage>>,
   Expect<Equals<Web.Bootstrap, Api.BootstrapResponse>>,
   Expect<Equals<Web.Page<Web.Session>, Api.SessionListResponse>>,
@@ -95,6 +99,8 @@ export type ContractChecks = [
   Expect<Equals<Web.TemplateInput, Input<typeof Schemas.templateSchema>>>,
   Expect<Equals<Web.ForkInput, Input<typeof Schemas.forkSessionSchema>>>,
   Expect<Equals<Web.ReviewFeedbackInput, Input<typeof Schemas.reviewFeedbackSchema>>>,
+  Expect<Equals<Web.HintInput, Input<typeof Schemas.hintSchema>>>,
+  Expect<Equals<Web.RewriteInput, Input<typeof Schemas.rewriteRequestSchema>>>,
 
   // Chat stream (NDJSON lines)
   Expect<Equals<WebChatEvent, ChatEvent>>,

@@ -7,11 +7,13 @@ import { warningsForModels } from '../../chat/attach-rules'
 import { compareHandoffs } from '../../chat/compare-handoffs'
 import type { CompareTurn } from '../../chat/compare-state'
 import { useAnnouncer } from '../../chat/use-announcer'
+import { useFeatureTip, useMarkSeenOnVisit } from '../../chat/use-tip'
 import { useAttachments } from '../../chat/use-attachments'
 import { useCompare } from '../../chat/use-compare'
 import { useFileDrop } from '../../chat/use-file-drop'
 import { useStickToBottom } from '../../chat/use-stick-to-bottom'
 import { usageState } from '../../chat/usage'
+import { AnswerHelpers } from '../../components/chat/AnswerHelpers'
 import { AttachMenu } from '../../components/chat/AttachMenu'
 import { Composer } from '../../components/chat/Composer'
 import { LiveRegion } from '../../components/chat/LiveRegion'
@@ -44,6 +46,7 @@ export function CompareView({ bootstrap, sessionId, initialModelIds, initialTurn
   const isOnline = useIsOnline()
   const fork = useForkSession()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const boxRef = useRef<HTMLTextAreaElement>(null)
   const limit = usageState(usage)
   const compare = useCompare({
     sessionId,
@@ -56,6 +59,12 @@ export function CompareView({ bootstrap, sessionId, initialModelIds, initialTurn
   const scroll = useStickToBottom(scrollRef, compare.turns)
   const drop = useFileDrop(attachments.add, compare.isStreaming || limit.isLimited)
   useTopbar('Compare models', `${selected.length} models`)
+  useMarkSeenOnVisit('compare')
+  const refineTip = useFeatureTip(['refine'], { isWelcomeVisible: false })
+  // Follow-ups go to every model, once every answer in the last turn is in.
+  const lastAnswers = compare.turns[compare.turns.length - 1]?.answers ?? []
+  const finished = lastAnswers.filter((answer) => answer.status === 'complete' && answer.content.trim() !== '')
+  const canFollowUp = !compare.isStreaming && finished.length > 0
 
   // Same hand-off as chat: the shell remounts the page when the path changes to /compare/:id.
   useEffect(() => {
@@ -124,6 +133,23 @@ export function CompareView({ bootstrap, sessionId, initialModelIds, initialTurn
             onContinue={handleContinue}
             onFeedback={(id: string, rating: Rating) => compare.setFeedback(id, rating)}
           />
+          {canFollowUp && (
+            <div className="mt-4 max-w-[var(--container-read)]">
+              <AnswerHelpers
+                scope="many"
+                text={finished.map((answer) => answer.content).join('\n\n')}
+                isDisabled={!isOnline || limit.isLimited || selected.length < 2}
+                showTip={refineTip.tip === 'refine'}
+                onDismissTip={refineTip.dismiss}
+                onSend={(prompt) => {
+                  refineTip.markSeen('refine')
+                  handleSend(prompt, [])
+                  // The buttons unmount when they send. Keep focus, and the reading position, with the box.
+                  boxRef.current?.focus({ preventScroll: true })
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
       <div className="flex-none px-4 pb-3.5 pt-2 md:px-8">
@@ -133,6 +159,7 @@ export function CompareView({ bootstrap, sessionId, initialModelIds, initialTurn
             inputId="compare-prompt"
             label="Message for all models"
             routeFocus
+            textareaRef={boxRef}
             attachments={attachments}
             warnings={warnings}
             isStreaming={compare.isStreaming}

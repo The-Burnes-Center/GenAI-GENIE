@@ -97,12 +97,15 @@ export function historyForModel(messages: Message[], modelId: string, mode: "cha
   return messages.filter((m) => m.modelId === modelId);
 }
 
-/** Reasoning-capable Claude models take adaptive thinking; effort follows the user's choice. */
+/**
+ * Reasoning-capable Claude models take adaptive thinking; effort follows the user's choice. Everyday chat runs at
+ * "low" (fewer billed thinking tokens; answers held up in a side-by-side run), and "Think harder" asks for "high".
+ */
 export function thinkingFields(model: ModelEntry, thinking: "standard" | "deep" | undefined): DocumentType | undefined {
   if (!thinking || !model.capabilities.reasoning || !/anthropic\.claude/i.test(model.modelId)) return undefined;
   return {
     thinking: { type: "adaptive", display: "summarized" },
-    output_config: { effort: thinking === "deep" ? "high" : "medium" },
+    output_config: { effort: thinking === "deep" ? "high" : "low" },
   };
 }
 
@@ -182,11 +185,18 @@ export interface Source {
 const escapeSource = (text: string) => text.replace(/<\/?source/gi, (m) => m.replace("<", "&lt;"));
 
 /**
- * Retrieved passages are untrusted: they come from user-uploaded files and may contain
- * instructions. They are fenced and the model is told to treat them as data only.
+ * Order: the admin's base assistant instructions, the template prompt, then the sources. Retrieved passages
+ * are untrusted: they come from user-uploaded files and may contain instructions. They are fenced and the
+ * model is told to treat them as data only.
  */
-export function buildSystem(template: Template | undefined, sources: Source[], cache = false): SystemContentBlock[] | undefined {
+export function buildSystem(
+  template: Template | undefined,
+  sources: Source[],
+  cache = false,
+  assistantInstructions = "",
+): SystemContentBlock[] | undefined {
   const blocks: SystemContentBlock[] = [];
+  if (assistantInstructions.trim()) blocks.push({ text: assistantInstructions.trim() });
   if (template?.systemPrompt.trim()) blocks.push({ text: template.systemPrompt });
   if (sources.length > 0) {
     const fenced = sources

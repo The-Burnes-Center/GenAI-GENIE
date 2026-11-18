@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { useBootstrap } from '../api/bootstrap'
 import { useWorkspaceListItems } from '../api/workspaces'
 import type { Workspace } from '../api/types'
+import { useMarkSeenOnVisit } from '../chat/use-tip'
 import { PageHead } from '../components/admin/PageHead'
 import { QueryError, TableSkeleton } from '../components/admin/states'
 import { Button, EmptyState, LoadMore, Table, type TableColumn } from '../components/ui'
@@ -17,6 +18,7 @@ export function WorkspacesPage() {
   const list = useWorkspaceListItems()
   const navigate = useNavigate()
   const [isCreating, setIsCreating] = useState(false)
+  useMarkSeenOnVisit('workspaces')
 
   const columns: TableColumn<Workspace>[] = [
     {

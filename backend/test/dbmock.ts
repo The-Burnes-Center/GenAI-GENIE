@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import type { ListWrite } from "../src/lib/db.js";
 
 type Item = Record<string, unknown>;
 export const store = new Map<string, Item>();
@@ -52,6 +53,27 @@ export const dbMockModule = {
     Object.assign(cur, extra.set ?? {});
     store.set(k, cur);
     return true;
+  }),
+  /** Mirrors the real conditional write: refuses (undefined, no write) on a guard mismatch, a duplicate value, or a removal of a missing item. */
+  writeListIfAllowed: vi.fn(async (spec: ListWrite): Promise<Item | undefined> => {
+    const k = key(spec.pk, spec.sk);
+    const cur = store.get(k);
+    const guardValue = cur?.[spec.guard.field];
+    if (guardValue !== undefined && guardValue !== spec.guard.allowed) return undefined;
+    if (spec.value === undefined) {
+      if (!cur) return undefined;
+      const next: Item = { ...cur };
+      delete next[spec.field];
+      store.set(k, next);
+      return { ...next };
+    }
+    const list = Array.isArray(cur?.[spec.field]) ? [...(cur?.[spec.field] as unknown[])] : [];
+    if (list.includes(spec.value)) return undefined;
+    const next: Item = { PK: spec.pk, SK: spec.sk, ...cur };
+    for (const [field, value] of Object.entries(spec.ifMissing ?? {})) if (next[field] === undefined) next[field] = value;
+    next[spec.field] = [...list, spec.value];
+    store.set(k, next);
+    return { ...next };
   }),
   batchPut: vi.fn(async (items: Item[]) => items.forEach((i) => store.set(key(String(i.PK), String(i.SK)), i))),
   batchDelete: vi.fn(async (keys: { PK: string; SK: string }[]) => keys.forEach((k) => store.delete(key(k.PK, k.SK)))),

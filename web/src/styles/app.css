@@ -50,12 +50,21 @@
 @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.97); } }
 @keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } }
-@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: 0.45; } }
 @keyframes fade-in { from { opacity: 0; } }
+@keyframes line-in { from { opacity: 0; transform: translateX(-14px); } }
 
 .animate-view { animation: view-in var(--duration-base) var(--ease-out); }
+.animate-rise { animation: view-in var(--duration-slow) var(--ease-out) both; }
+.animate-rise-late { animation: view-in var(--duration-slow) var(--ease-out) 90ms both; }
+/* The welcome card folds up instead of vanishing. Grid rows are the one thing besides transform and opacity that animates. */
+.welcome-collapse { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out); }
+.welcome-collapse[data-exiting] { grid-template-rows: 0fr; opacity: 0; }
+/* The Room illustration: the line enters the room, then the text lines appear. Plays once. */
+.room-line { animation: line-in 600ms var(--ease-out) 120ms both; }
+.room-text { animation: fade-in 400ms ease 520ms both; }
 .animate-spin-slow { animation: spin 900ms linear infinite; }
 .animate-skeleton { animation: pulse 1.4s ease-in-out infinite; }
 
@@ -77,7 +86,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-view, .ui-popover, .ui-dialog-overlay, .ui-dialog-modal, .ui-toast { animation: none !important; }
+  .welcome-collapse { transition: none; }
+  .animate-view, .animate-rise, .animate-rise-late, .room-line, .room-text, .ui-popover, .ui-dialog-overlay, .ui-dialog-modal, .ui-toast { animation: none !important; }
   .animate-spin-slow, .animate-skeleton { animation-duration: 2s; }
   .press:active { transform: none !important; }
 }

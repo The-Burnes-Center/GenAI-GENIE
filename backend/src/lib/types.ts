@@ -28,13 +28,34 @@ export interface Settings {
   /** IANA zone whose midnight ends the daily message limit. */
   timezone: string;
   templateCategories: string[];
+  /** Base instructions sent to the model with every chat, before any template's own prompt. */
+  assistantInstructions: string;
+  /** "What not to share" rules shown to staff on first run and on the Learn page. */
+  dataRules: string[];
+  /** Training and help links on the Learn page. */
+  learnLinks: LearnLink[];
+  /** Email address or https URL where staff can reach a person for help. Empty hides it. */
+  helpContact: string;
 }
+
+export interface LearnLink {
+  title: string;
+  /** https only. */
+  url: string;
+  description?: string;
+}
+
+/** One-time beginner tips. The web app shows each until the person dismisses it or uses the feature. */
+export const HINT_IDS = ["welcome", "think-harder", "compare", "workspaces", "templates", "attach", "refine"] as const;
+export type HintId = (typeof HINT_IDS)[number];
 
 export interface UserProfile {
   email: string;
   status: ProfileStatus;
   createdAt: string;
   lastSeenAt?: string;
+  /** Beginner tips already seen or dismissed. */
+  hints?: HintId[];
 }
 
 export interface ModelEntry {

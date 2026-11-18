@@ -293,7 +293,7 @@ describe("pendingCount", () => {
     expect((await call("alice", "GET", "/api/me")).body).not.toHaveProperty("pendingCount");
     const boot = await call("admin", "GET", "/api/bootstrap");
     expect(boot.body.me.pendingCount).toBe(2);
-    expect(boot.body.usage).toMatchObject({ used: 0, limit: 0 });
+    expect(boot.body.usage).toMatchObject({ used: 0, limit: 100 });
     expect(typeof boot.body.usage.resetsAt).toBe("string");
     expect((await call("alice", "GET", "/api/bootstrap")).body.me).not.toHaveProperty("pendingCount");
   });

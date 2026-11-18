@@ -57,7 +57,7 @@ describe('mock bootstrap and access', () => {
 
   it('returns usage and the admin pending count for the default admin', async () => {
     const body = (await (await get('/api/bootstrap')).json()) as Bootstrap
-    expect(body.usage).toMatchObject({ used: 12, limit: 50 })
+    expect(body.usage).toMatchObject({ used: 12, limit: 100 })
     expect(body.me).toMatchObject({ isAdmin: true, pendingCount: 2 })
     expect(body.models.every((model) => model.enabled)).toBe(true)
   })

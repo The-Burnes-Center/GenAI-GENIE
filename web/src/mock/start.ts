@@ -1,6 +1,6 @@
 // Entry point for mock mode. main.tsx imports this only when VITE_MOCK is 1, so production builds never include it.
 import { setTokenProvider } from '../auth/auth-service'
-import { MOCK_TOKEN, readMockSignIn, setMockAsUser } from './identity'
+import { MOCK_TOKEN, SEEDED_HINTS_KEY, readMockSignIn, setMockAsUser } from './identity'
 import { mockTiming } from './timing'
 
 const SLOW_THINKING_MS = 300
@@ -13,6 +13,15 @@ function applyPageParameters(): void {
   const params = new URLSearchParams(window.location.search)
   if (params.has('asUser')) setMockAsUser(true)
   if (params.has('admin')) setMockAsUser(false)
+  // ?hints=welcome (or any ids, comma separated) starts a new person with those tips already seen, to try the returning-user screens.
+  const seeded = params.get('hints')
+  if (seeded !== null) {
+    try {
+      window.sessionStorage.setItem(SEEDED_HINTS_KEY, JSON.stringify(seeded.split(',').filter(Boolean)))
+    } catch {
+      // Storage unavailable: the person starts with no tips seen.
+    }
+  }
   // ?slow stretches the stream so a screenshot can catch it mid-answer.
   if (params.has('slow')) {
     mockTiming.thinkingDelayMs = SLOW_THINKING_MS

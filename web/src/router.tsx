@@ -10,6 +10,7 @@ import { ComparePage } from './pages/compare/ComparePage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import { WorkspacesPage } from './pages/WorkspacesPage'
 import { WorkspaceDetailPage } from './pages/WorkspaceDetailPage'
+import { LearnPage } from './pages/learn/LearnPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AccountPage } from './pages/account/AccountPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
                   { path: 'compare', element: <ComparePage /> },
                   { path: 'compare/:sessionId', element: <ComparePage /> },
                   { path: 'templates', element: framed(<TemplatesPage />) },
+                  { path: 'learn', element: <LearnPage /> },
                   { path: 'workspaces', element: framed(<WorkspacesPage />) },
                   { path: 'workspaces/:id', element: framed(<WorkspaceDetailPage />) },
                   { path: 'history', element: framed(<HistoryPage />) },

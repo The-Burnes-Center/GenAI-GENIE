@@ -29,3 +29,6 @@ export const TOMBSTONE_TTL_SECONDS = Math.max(DAY_SECONDS, TOKEN_VALIDITY_MINUTE
 export const UPLOAD_TTL_SECONDS = DAY_SECONDS;
 
 export const attachmentPrefix = (sub: string) => `attachments/${sub}/`;
+
+/** "Help me ask" rewrites per person per local day. Separate from the chat message limit, so it never spends messages. */
+export const REWRITE_DAILY_LIMIT = 50;

@@ -4,7 +4,7 @@
  * bodies with these, so a handler and its documented shape cannot disagree.
  */
 import type { ErrorCode } from "./http.js";
-import type { Message, ModelEntry, ProfileStatus, Session, Settings, Template, Workspace, WorkspaceDoc } from "./types.js";
+import type { HintId, Message, ModelEntry, ProfileStatus, Session, Settings, Template, Workspace, WorkspaceDoc } from "./types.js";
 
 export interface ErrorBody {
   error: { code: ErrorCode; message: string };
@@ -22,6 +22,19 @@ export interface MeResponse {
   isAdmin: boolean;
   /** Admins only: sign-ups waiting for approval. */
   pendingCount?: number;
+  /** Beginner tips this person has already seen or dismissed. */
+  hints: HintId[];
+}
+
+/** POST and DELETE `/api/me/hints`. */
+export interface HintsResponse {
+  hints: HintId[];
+}
+
+/** POST `/api/assist/rewrite`: a clearer version of the person's request, and what was added, in plain words. */
+export interface RewriteResponse {
+  text: string;
+  changes: string[];
 }
 
 export interface DailyUsage {

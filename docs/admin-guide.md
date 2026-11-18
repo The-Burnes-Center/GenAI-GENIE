@@ -46,13 +46,26 @@ Capabilities matter: Genie only sends images to models marked as reading images,
 | Setting | Effect |
 |---|---|
 | App name, welcome title and message, disclaimer | Text on the sign-in and home screens. |
-| Default model | The model new chats start with. |
-| Title model | The model that writes short chat titles (a fast, low-cost model works best). |
-| Daily message limit | Messages per person per day. `0` means unlimited. Each model answer counts, so a three-model compare uses three. |
+| Default model | The model new chats start with. Out of the box this is Claude Haiku 5.5: it costs about a twentieth of Sonnet per message and handles everyday writing and summaries well. |
+| Title model | The model that writes short chat titles and runs **Help me ask** (a fast, low-cost model works best). |
+| Daily message limit | Messages per person per day (default 100). `0` means unlimited. Each model answer counts, so a three-model compare uses three. **Help me ask** has its own limit of 50 a day and never uses messages. |
 | Time zone | When the daily limit starts over (midnight in this time zone). Changing it mid-day starts a fresh count. |
 | Compare models | The most models a person can compare at once (2 to 3 recommended). |
 | Sources per question | How many passages document workspaces retrieve per question. |
 | Template categories | The list used by the template editor and gallery. |
+
+### Help and learning
+
+These shape what people new to AI see: the welcome card on their first visit, the **Learn** page, and how the assistant behaves.
+
+| Setting | Effect |
+|---|---|
+| Assistant instructions | Sent to the model with every chat, before any template's instructions. The default asks for plain language, honesty about uncertainty, reminders to check names, numbers, dates and laws, and an accurate description of what Genie can do. Up to 4,000 characters. |
+| What not to share | Up to 10 short rules shown on the welcome card and the Learn page. Replace the defaults with your organization's policy. |
+| Learning links | Up to 8 https links on the Learn page, such as your organization's AI training. The default is the free InnovateUS course Responsible AI for Public Professionals. |
+| Help contact | An email address or https link shown on the Learn page as the place to reach a person. Leave empty to hide it. |
+
+Beginner tips (the welcome card and the one-time feature tips) are remembered per person. Anyone can bring them back from **Account**, **Show tips again**.
 
 ## Usage, feedback and audit
 

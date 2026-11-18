@@ -25,7 +25,9 @@ export type ErrorCode =
   | 'SUSPENDED'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'LIMIT_REACHED'
   | 'UNAVAILABLE'
+  | 'ASSIST_FAILED'
   | 'INTERNAL'
 
 // What every failed REST call returns: { error: { code, message } } with the matching HTTP status.
@@ -40,6 +42,22 @@ export interface Me {
   isAdmin: boolean
   // Admins only: sign-ups waiting for approval, shown as a badge in the console.
   pendingCount?: number
+  // Beginner tips this person has already seen or dismissed.
+  hints: HintId[]
+}
+
+// One-time beginner tips. Each shows until the person dismisses it or uses the feature.
+export type HintId = 'welcome' | 'think-harder' | 'compare' | 'workspaces' | 'templates' | 'attach' | 'refine'
+
+// POST and DELETE /api/me/hints.
+export interface HintsResponse {
+  hints: HintId[]
+}
+
+// POST /api/assist/rewrite: a clearer version of the person's request, and what was added, in plain words.
+export interface RewriteResponse {
+  text: string
+  changes: string[]
 }
 
 // Unauthenticated GET /api/public-config. Drives the sign-in and sign-up screens.
@@ -83,6 +101,21 @@ export interface Settings {
   // IANA zone for the daily usage boundary (midnight local time).
   timezone: string
   templateCategories: string[]
+  // Base instructions sent to the model with every chat, before any template's own prompt.
+  assistantInstructions: string
+  // "What not to share" rules shown on the welcome card and the Learn page.
+  dataRules: string[]
+  // Training and help links on the Learn page.
+  learnLinks: LearnLink[]
+  // An email address or an https URL where staff can reach a person. Empty hides it.
+  helpContact: string
+}
+
+export interface LearnLink {
+  title: string
+  // https only.
+  url: string
+  description?: string
 }
 
 export interface ModelConfig {
@@ -386,6 +419,14 @@ export interface UploadTicket {
 
 export interface RenameSessionInput {
   title: string
+}
+
+export interface HintInput {
+  hint: HintId
+}
+
+export interface RewriteInput {
+  text: string
 }
 
 export interface FeedbackInput {

@@ -1,5 +1,5 @@
 // The whole mock backend as one mutable object. resetStore() rebuilds it (tests call it between cases).
-import type { AdminUser, AuditEntry, FeedbackRecord, ModelConfig, Settings, Template, UsageReport, Workspace, WorkspaceDocument } from '../api/types'
+import type { AdminUser, AuditEntry, FeedbackRecord, HintId, ModelConfig, Settings, Template, UsageReport, Workspace, WorkspaceDocument } from '../api/types'
 import { initialModels, initialSettings, initialDocuments, initialTemplates, initialWorkspaces } from './seed-catalog'
 import { initialAudit, initialFeedback, initialUsage, initialUsers } from './seed-people'
 import { seedSessions, type MockSession } from './seed-sessions'
@@ -19,6 +19,10 @@ export interface MockStore {
   usage: UsageReport
   // Messages sent today, for the daily limit and the bootstrap usage block.
   dailyUsed: number
+  // Beginner tips seen, by email, so any new email is a brand-new person who sees the first-run screen.
+  hints: Record<string, HintId[]>
+  // Help-me-ask calls today, for the 50 a day cap.
+  rewritesToday: number
   counter: number
 }
 
@@ -37,6 +41,8 @@ function createStore(now: number): MockStore {
     audit: initialAudit(),
     usage: initialUsage(),
     dailyUsed: 12,
+    hints: {},
+    rewritesToday: 0,
     counter: 0,
   }
 }

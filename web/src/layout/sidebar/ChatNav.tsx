@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router'
-import { Books, ClockCounterClockwise, Columns, FileText, Plus } from '@phosphor-icons/react'
+import { Books, ClockCounterClockwise, Columns, FileText, GraduationCap, Plus } from '@phosphor-icons/react'
 import { SearchField } from '../../components/ui'
 import { useDebouncedValue } from '../../components/use-debounced-value'
 import { HistoryList } from './HistoryList'
@@ -12,6 +12,7 @@ const LINKS = [
   { to: '/compare', label: 'Compare', Icon: Columns },
   { to: '/templates', label: 'Templates', Icon: FileText },
   { to: '/workspaces', label: 'Workspaces', Icon: Books },
+  { to: '/learn', label: 'Learn', Icon: GraduationCap },
 ]
 
 interface ChatNavProps {
@@ -30,11 +31,12 @@ export function ChatNav({ scrollRoot, searchInputRef }: ChatNavProps) {
         <NavLink
           to="/home"
           end
+          aria-keyshortcuts="Alt+N"
           className={`${NAV_LINK_CLASS} border border-edge-strong bg-surface text-ink hover:bg-hover aria-[current=page]:bg-surface`}
         >
           <Plus size={20} aria-hidden="true" />
           New chat
-          <kbd className="ml-auto rounded-xs border border-edge-strong px-1.5 text-[11px] leading-[18px] text-ink-3">Alt N</kbd>
+          <kbd aria-hidden="true" className="ml-auto rounded-xs border border-edge-strong px-1.5 text-[11px] leading-[18px] text-ink-3">Alt N</kbd>
         </NavLink>
         {LINKS.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to} className={NAV_LINK_CLASS}>

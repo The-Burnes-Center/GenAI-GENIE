@@ -46,7 +46,7 @@ Verified against Cognito docs on 2026-11-17: passkeys need the ESSENTIALS plan a
 - **Sign-in UX (web):** one email field, then Continue. Amplify `signIn({ username, options: { authFlowType: "USER_AUTH" } })` returns the available challenges; offer passkey first when available (`preferredChallenge: "WEB_AUTHN"`), otherwise password, otherwise email code. Supports NEW_PASSWORD_REQUIRED for invited users and forgot-password.
 - **Passkey enrollment:** after a successful non-passkey sign-in, a one-time, dismissible prompt offers "Sign in faster with a passkey" (`associateWebAuthnCredential()`). An Account page lists and removes passkeys (`listWebAuthnCredentials`, `deleteWebAuthnCredential`) and changes the password.
 - **Self sign-up:** enabled on the pool, governed by admin settings: `signupMode` (`off` | `open`), `allowedEmailDomains` (empty = any), `requireApproval` (bool). A **pre sign-up Lambda trigger** reads settings from the table and rejects with a friendly message when sign-up is off or the domain is not allowed. Users confirm their email with a code (default Cognito email is fine for this; ~50/day cap without SES). A **post confirmation trigger** writes the user profile with status `pending` (if `requireApproval`) or `active`.
-- **User profile item** `USER#{sub}` / `PROFILE`: email, status (`active` | `pending` | `suspended`), createdAt, lastSeenAt. Missing profile = `active` (admin-created users). API middleware loads it (cache 60 s in memory); `pending` gets 403 `PENDING_APPROVAL` (the UI shows a "waiting for approval" screen), `suspended` gets 403 `SUSPENDED`.
+- **User profile item** `USER#{sub}` / `PROFILE`: email, status (`active` | `pending` | `suspended`), createdAt, lastSeenAt. A profile with no stored status counts as `active` for admins and when approval is off, and as `pending` otherwise (accounts created outside the app, for example in the Cognito console). API middleware loads it (cache 60 s in memory); `pending` gets 403 `PENDING_APPROVAL` (the UI shows a "waiting for approval" screen), `suspended` gets 403 `SUSPENDED`.
 - Every API call sends `Authorization: Bearer <ID token>`. Lambdas verify with `aws-jwt-verify` (tokenUse `id`, clientId). The user is `{ sub, email, isAdmin, status }`, where `isAdmin = cognito:groups includes "admin"`.
 - Roles: `user` (default) and `admin` (Cognito group). Admin routes return 403 for non-admins. The UI hides admin navigation for non-admins, but the server is the authority.
 - Disabled users are rejected by Cognito at sign-in. Admins cannot remove their own admin role or disable themselves.
@@ -58,8 +58,8 @@ Verified against Cognito docs on 2026-11-17: passkeys need the ESSENTIALS plan a
 |---|---|---|---|
 | Session | `USER#{sub}` | `SESSION#{sessionId}` | title, mode (`chat`/`compare`), modelId, modelIds (compare), workspaceId?, templateId?, createdAt, updatedAt, messageCount |
 | Message | `SESSION#{sessionId}` | `MSG#{createdAt}#{messageId}` | role (`user`/`assistant`), content, attachments `[{key,name,contentType,size}]`, modelId, citations, usage `{inputTokens,outputTokens}`, latencyMs, stopReason, feedback `{rating,comment,at}` |
-| Settings | `CONFIG` | `SETTINGS` | appName, welcomeTitle, welcomeMessage, disclaimer, defaultModelId, titleModelId (default Claude Haiku 5.5), dailyMessageLimit (0 = unlimited), maxCompareModels (default 3), signupMode, allowedEmailDomains, requireApproval, retrievalTopK (default 15, max 100; a stored 8 is migrated to 15 on read), timezone (default America/New_York), templateCategories |
-| User profile | `USER#{sub}` | `PROFILE` | email, status, createdAt, lastSeenAt |
+| Settings | `CONFIG` | `SETTINGS` | appName, welcomeTitle, welcomeMessage, disclaimer, defaultModelId, titleModelId (default Claude Haiku 5.5), dailyMessageLimit (default 100; 0 = unlimited), maxCompareModels (default 3), signupMode, allowedEmailDomains, requireApproval, retrievalTopK (default 15, max 100; a stored 8 is migrated to 15 on read), timezone (default America/New_York), templateCategories, assistantInstructions (base system prompt for every chat, default in `defaults.ts`), dataRules (string[], "what not to share" rules), learnLinks (`{title, url, description?}[]`, https only), helpContact (email or https URL, empty hides it) |
+| User profile | `USER#{sub}` | `PROFILE` | email, status, createdAt, lastSeenAt, hints (beginner tips seen or dismissed, a list of `HINT_IDS`) |
 | Model | `CONFIG` | `MODEL#{modelId}` | modelId (Bedrock model or inference profile id), label, provider, description, enabled, capabilities `{vision, documents, reasoning, temperature, promptCache}`, contextWindow, maxOutputTokens, sortOrder |
 | Template | `CONFIG` | `TEMPLATE#{templateId}` | title, description, category, systemPrompt, starterPrompt, enabled, sortOrder |
 | Workspace | `WORKSPACES` | `WS#{workspaceId}` | name, description, visibility (`personal`/`shared`), ownerSub, ownerEmail, createdAt, docCount |
@@ -72,15 +72,15 @@ Verified against Cognito docs on 2026-11-17: passkeys need the ESSENTIALS plan a
 | Feedback index | `FEEDBACK` | `{at}#{messageId}` | sessionId, messageId, rating, comment, modelId, userEmail, promptExcerpt, responseExcerpt |
 | Audit | `AUDIT` | `{at}#{uuid}` | actorSub, actorEmail, action, target, details |
 
-Settings, models and templates are seeded on first read from `backend/src/lib/defaults.ts` when absent.
+Settings, models and templates are seeded on first read from `backend/src/lib/defaults.ts` when absent. A settings item stored before a field existed is merged with the defaults on read, so the new fields need no migration.
 
 ### Default model catalog (all verified callable in us-east-1 on 2026-11-17)
 
 | modelId | label | provider | vision | documents | reasoning | temperature | promptCache | contextWindow | maxOutputTokens |
 |---|---|---|---|---|---|---|---|---|---|
-| `us.anthropic.claude-sonnet-5-5` | Claude Sonnet 5.5 (default) | Anthropic | yes | yes | yes | **no** | yes | 1,000,000 | 128,000 |
+| `us.anthropic.claude-haiku-5-5` | Claude Haiku 5.5 (default, and the title and rewrite model) | Anthropic | yes | yes | yes | **no** | yes | 1,000,000 | 128,000 |
+| `us.anthropic.claude-sonnet-5-5` | Claude Sonnet 5.5 | Anthropic | yes | yes | yes | **no** | yes | 1,000,000 | 128,000 |
 | `us.anthropic.claude-opus-5-5` | Claude Opus 5.5 | Anthropic | yes | yes | yes | **no** | yes | 1,000,000 | 128,000 |
-| `us.anthropic.claude-haiku-5-5` | Claude Haiku 5.5 | Anthropic | yes | yes | yes | **no** | yes | 1,000,000 | 128,000 |
 | `global.openai.gpt-6.2-sol` | GPT-6.2 Sol | OpenAI | no | **no** | no | **no** | no | 200,000 | 32,000 |
 | `openai.gpt-oss-120b-1:0` | gpt-oss 120B | OpenAI | no | no | no | yes | no | 128,000 | 32,000 |
 | `us.amazon.nova-pro-v1:0` | Nova Pro | Amazon | yes | yes | no | yes | yes | 300,000 | 10,000 |
@@ -110,7 +110,7 @@ Bold = verified live on 2026-11-17 (Converse returned "temperature is deprecated
 }
 ```
 
-There is no temperature or max-length control for users: most current models reject temperature, and modern chat apps do not expose it. `thinking: "deep"` is only offered for models with `capabilities.reasoning`; for Claude it maps to `additionalModelRequestFields: { thinking: { type: "adaptive", display: "summarized" }, output_config: { effort: "high" } }` (`standard` = effort `medium`, same thinking block; verified accepted on Opus 5.5). `temperature` is only ever sent when the model has `capabilities.temperature` and an admin set a default; never for Claude 5.x.
+There is no temperature or max-length control for users: most current models reject temperature, and modern chat apps do not expose it. `thinking: "deep"` is only offered for models with `capabilities.reasoning`; for Claude it maps to `additionalModelRequestFields: { thinking: { type: "adaptive", display: "summarized" }, output_config: { effort: "high" } }` (`standard` = effort `low`, same thinking block; verified accepted on Opus 5.5). `temperature` is only ever sent when the model has `capabilities.temperature` and an admin set a default; never for Claude 5.x.
 
 Response: `Content-Type: application/x-ndjson`, one JSON object per line:
 
@@ -126,11 +126,23 @@ Response: `Content-Type: application/x-ndjson`, one JSON object per line:
 {"type":"error","code":"MODEL_DISABLED|LIMIT_REACHED|BAD_REQUEST|CONTEXT_TOO_LONG|BEDROCK_THROTTLED|BEDROCK_ERROR|REFUSED","message":"human readable"}
 ```
 
-Server steps: verify JWT + profile status → validate body (zod) → check model enabled + daily limit → create or load session (must belong to user) → emit `session` immediately → load **all** prior messages (paginate the Query; for compare: only this modelId's assistant turns plus the user turns) → if workspaceId: KB `Retrieve` (top `retrievalTopK`, filter `workspaceId` equals) and add a grounded-answer system block with numbered sources, emit `citations` → build Converse messages: images become image blocks only for vision models; documents become document blocks for document-capable models, otherwise the server extracts text (PDF via `unpdf`, DOCX via `mammoth`, TXT/MD/CSV/HTML as text) and inlines it as a fenced, clearly labelled text block, emitting `notice ATTACHMENT_AS_TEXT`; spreadsheets on non-document models → `BAD_REQUEST` with a clear message → add `cachePoint` after the system prompt and after the last prior turn when `capabilities.promptCache` → `ConverseStream` with `maxTokens = model.maxOutputTokens` → stream `reasoning` + `delta` → persist user + assistant messages, update session, ADD usage → for a new session, generate a short title with `titleModelId` (max 12 words, no quotes) and emit `title`; fallback to the first 60 chars of the prompt.
+Server steps: verify JWT + profile status → validate body (zod) → check model enabled + daily limit → create or load session (must belong to user) → emit `session` immediately → load **all** prior messages (paginate the Query; for compare: only this modelId's assistant turns plus the user turns) → if workspaceId: KB `Retrieve` (top `retrievalTopK`, filter `workspaceId` equals) and add a grounded-answer system block with numbered sources, emit `citations` → build the system blocks in this order: `settings.assistantInstructions` (skipped when empty after trim), then the template's `systemPrompt`, then the sources block, then a `cachePoint` last when `capabilities.promptCache`. The same blocks apply to normal chat, compare, retry and fork, because they all run through this path. Title generation and the rewrite helper never receive the assistant instructions. Build Converse messages: images become image blocks only for vision models; documents become document blocks for document-capable models, otherwise the server extracts text (PDF via `unpdf`, DOCX via `mammoth`, TXT/MD/CSV/HTML as text) and inlines it as a fenced, clearly labelled text block, emitting `notice ATTACHMENT_AS_TEXT`; spreadsheets on non-document models → `BAD_REQUEST` with a clear message → add `cachePoint` after the system prompt and after the last prior turn when `capabilities.promptCache` → `ConverseStream` with `maxTokens = model.maxOutputTokens` → stream `reasoning` + `delta` → persist user + assistant messages, update session, ADD usage → for a new session, generate a short title with `titleModelId` (max 12 words, no quotes) and emit `title`; fallback to the first 60 chars of the prompt.
 
 Compare: the client sends one request per model with the same `sessionId` and `mode: "compare"`. The first request without a sessionId creates the session; the client then reuses it. In compare sessions **both** the user and assistant messages carry `modelId` and a `turn` number (0-based, sent by the client as `turn` in the request body); history for a model is the messages with that `modelId`. The UI shows each user turn once (dedupe by `turn`) with one answer per model.
 
 Exact byte limits (decimal, enforced identically on client and server): images 3,750,000; attachment documents 4,500,000; workspace documents 50,000,000.
+
+## Running cost
+
+Genie has no always-on resources: no VPC, NAT gateway, OpenSearch, Kendra, Aurora, WAF or KMS key. Every resource bills per use (Lambda, DynamoDB on demand, S3, S3 Vectors, CloudFront `PriceClass_100`, Cognito Essentials), so an idle deployment costs cents a month. Nearly all spend is model calls, so the defaults are chosen for cost:
+
+- **Default model Claude Haiku 5.5.** About $0.10 / $0.50 per million input / output tokens against $2 / $10 for Sonnet 5.5. In a side-by-side run on 2026-11-18 (plain-language rewrite, team email, meeting agenda) Haiku cost $0.0002 to $0.0004 per answer against $0.003 to $0.008 for Sonnet, answered faster, and matched it on quality. Sonnet and Opus stay in the picker; descriptions say which cost more.
+- **Everyday effort `low`.** Standard chats send effort `low`; "Think harder" sends `high`.
+- **Daily cap of 100 messages per person** by default (admins can change it; 0 = unlimited), plus 50 rewrites per person per day.
+- **Prompt caching** on every Claude request (system blocks and prior turns), so long chats re-read history at the cached rate.
+- **Titles and rewrites** run on the title model (Haiku 5.5).
+
+Bedrock on-demand calls are not taggable, so model spend does not appear under the `Project` tag in Cost Explorer; the admin Usage page (tokens by model and person) is the per-deployment view.
 
 ## Limits and long-running work (do not regress)
 
@@ -146,18 +158,23 @@ v1 shipped with a 512-token reply cap, temperature 0.01, and a hardcoded 2024 mo
 - **Pagination everywhere:** sessions list, messages Query, admin users (Cognito `ListUsers` pagination token), usage scans, workspace documents.
 - **History and titles in the sidebar:** newest 50 sessions with infinite scroll and server-side title search, not "5 recent".
 - **Streaming response cap:** Lambda response streaming allows 20 MB per response, far above 128K tokens of text.
+- **Settings field limits (admin PUT, enforced by zod):** `assistantInstructions` up to 4,000 characters; `dataRules` up to 10 items of 1 to 200 characters each (trimmed); `learnLinks` up to 8 items, each title 1 to 80 characters, url `https://` and up to 500 characters, optional description up to 200 characters; `helpContact` empty, an email address, or an `https://` URL, up to 200 characters.
+- **Rewrite input:** `POST /api/assist/rewrite` takes 1 to 8,000 characters after trimming. The model's reply is capped at 1,500 output tokens and its rewritten text at 8,000 characters. Each person gets 50 rewrites per local day (`REWRITE_DAILY_LIMIT`), counted on `USAGE#{day}` / `ASSIST#USER#{sub}`, separate from the chat message limit; the 51st returns 429 `LIMIT_REACHED` before any model call. A rewrite that fails (busy, timeout, unusable reply) is refunded, so only useful ones count.
 
 Compare: the client sends one request per model with the same `sessionId` and `mode: "compare"`. The first request without a sessionId creates the session; the client then reuses it.
 
 ## REST API (ApiFunction)
 
-All JSON. Errors: `{ "error": { "code": "...", "message": "..." } }` with 400/401/403/404/409/500. Pagination: `?cursor=` → `{ items, nextCursor }`.
+All JSON. Errors: `{ "error": { "code": "...", "message": "..." } }` with 400/401/403/404/409/500, plus 429 `LIMIT_REACHED` (a helper's daily cap), 502 `ASSIST_FAILED` (the rewrite helper's model reply was unusable or the model failed) and 503 `UNAVAILABLE` (busy or throttled, try again). Pagination: `?cursor=` → `{ items, nextCursor }`.
 
 User routes:
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/me` | `{ sub, email, isAdmin }` |
+| GET | `/api/me` | `{ sub, email, isAdmin, hints, pendingCount? }`. `hints` is always present (`[]` when none) and is read straight from the table, not from the 60 s profile cache. |
+| POST | `/api/me/hints` | `{ hint }` (one of `HINT_IDS`) → `{ hints }`. Idempotent: a tip already present is not added twice. Creates a missing profile as `active`. Never writes to a pending, suspended or deleted profile (403). |
+| DELETE | `/api/me/hints` | Clears every tip (powers "Show beginner tips again") → `{ hints: [] }`. Never creates a profile. |
+| POST | `/api/assist/rewrite` | `{ text }` → `{ text, changes }`. One non-streaming call on `titleModelId` (the default model when that one is missing or disabled), no assistant instructions, the request wrapped in `<request>` tags. Usage is recorded for the admin report but does not count toward the daily message limit; rewrites have their own cap of 50 a day (429 `LIMIT_REACHED`). `changes` holds up to 4 short strings. |
 | GET | `/api/bootstrap` | `{ settings, models (enabled only), templates (enabled only), me }` |
 | GET | `/api/sessions` | list own sessions, newest first, `?q=` title search |
 | GET | `/api/sessions/{id}` | session + messages |
@@ -225,6 +242,8 @@ Resolves design/DESIGN.md section 17. These are part of the contract.
 12. **Passkeys** are listed as Cognito returns them; no rename.
 13. **Pending count:** `/api/me` and `/api/bootstrap.me` include `pendingCount` for admins.
 14. **Compare:** 2 to `maxCompareModels` (default 3) enabled models; any enabled model may be used.
+
+15. **Beginner features (2026-11-18):** the `hints` list and the rewrite helper are described in the REST table and chat section above. Decisions: hint writes are one conditional UpdateItem that refuses pending, suspended and deleted profiles (the write is refused even if the in-memory status check was stale); a failed condition on a hint that is already present is a success that returns the current list. The rewrite helper records usage (so admins see its cost) but never increments the daily message counter; it has its own daily cap so it cannot become an unmetered way to call a model, and throttling returns 503 `UNAVAILABLE` while a failed or unusable model reply returns 502 `ASSIST_FAILED`.
 
 ## Naming and tagging (enforced by tests)
 

@@ -95,6 +95,64 @@ export async function updateItem(pk: string, sk: string, spec: UpdateSpec): Prom
   );
 }
 
+export interface ListWrite {
+  pk: string;
+  sk: string;
+  /** The list attribute to add to, or to remove when `value` is omitted. */
+  field: string;
+  value?: string;
+  /** Set only where the attribute is missing, so an item created here has its required fields. Ignored on removal. */
+  ifMissing?: Item;
+  /** The write only happens while this attribute is missing or equal to `allowed`. */
+  guard: { field: string; allowed: string };
+}
+
+/**
+ * One conditional UpdateItem on a list attribute. Adding skips a value the list already holds and creates a
+ * missing item (from `ifMissing`). Removing needs the item to exist. Resolves to the item after the write, or
+ * undefined when a condition refused it, in which case nothing was written.
+ */
+export async function writeListIfAllowed(spec: ListWrite): Promise<Item | undefined> {
+  const names: Record<string, string> = { "#list": spec.field, "#guard": spec.guard.field };
+  const values: Item = { ":allowed": spec.guard.allowed };
+  const guard = "(attribute_not_exists(#guard) OR #guard = :allowed)";
+  let update: string;
+  let condition: string;
+  if (spec.value === undefined) {
+    update = "REMOVE #list";
+    condition = `attribute_exists(PK) AND ${guard}`;
+  } else {
+    values[":empty"] = [];
+    values[":new"] = [spec.value];
+    values[":value"] = spec.value;
+    const sets = ["#list = list_append(if_not_exists(#list, :empty), :new)"];
+    Object.entries(spec.ifMissing ?? {}).forEach(([key, value], i) => {
+      names[`#m${i}`] = key;
+      values[`:m${i}`] = value;
+      sets.push(`#m${i} = if_not_exists(#m${i}, :m${i})`);
+    });
+    update = `SET ${sets.join(", ")}`;
+    condition = `${guard} AND (attribute_not_exists(#list) OR NOT contains(#list, :value))`;
+  }
+  try {
+    const out = await doc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { PK: spec.pk, SK: spec.sk },
+        UpdateExpression: update,
+        ConditionExpression: condition,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return out.Attributes as Item;
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return undefined;
+    throw err;
+  }
+}
+
 export interface PageResult<T> {
   items: T[];
   /** Key of the last row returned, set only when more rows follow. */

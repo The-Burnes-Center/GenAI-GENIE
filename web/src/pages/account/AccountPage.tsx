@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { SignOut } from '@phosphor-icons/react'
+import { describeError } from '../../api/errors'
+import { useResetHints } from '../../api/hints'
 import { useBootstrap } from '../../api/bootstrap'
 import { useAuth } from '../../auth/use-auth'
 import { Button, RadioGroup, toast } from '../../components/ui'
@@ -30,6 +32,7 @@ export function AccountPage() {
   const { data } = useBootstrap()
   const { signOut } = useAuth()
   const { preference, setPreference } = useTheme()
+  const reset = useResetHints()
 
   return (
     <div className="mx-auto max-w-[720px] px-4 pb-16 pt-4 md:px-8 md:pb-20 md:pt-6">
@@ -61,6 +64,23 @@ export function AccountPage() {
           value={preference}
           onChange={(value) => setPreference(value as ThemePreference)}
         />
+      </Section>
+      <Section
+        id="acct-tips"
+        title="Beginner tips"
+        lead="Genie shows a short tip the first time you meet a feature, and a welcome card on your first visit."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            isPending={reset.isPending}
+            pendingLabel="Resetting"
+            onPress={() => reset.mutate(undefined, { onError: (error) => toast.error(describeError(error)) })}
+          >
+            Show tips again
+          </Button>
+          {/* A polite status next to the button. Focus stays on the button. */}
+          <p role="status" className="text-small text-ink-2">{reset.isSuccess ? 'Tips will show again.' : ''}</p>
+        </div>
       </Section>
       <Section id="acct-signout" title="Sign out">
         <div>

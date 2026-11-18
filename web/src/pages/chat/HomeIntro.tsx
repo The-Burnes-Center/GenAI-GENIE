@@ -5,16 +5,21 @@ import { Button, buttonClass } from '../../components/ui'
 interface HomeIntroProps {
   title: string
   message: string
+  // First visits and people with no chats yet get a one-line promise when the admin wrote no message.
+  isNewcomer: boolean
 }
 
+const PROMISE = 'Tell Genie what you need, like you would a coworker. You decide what to use.'
+
 // Welcome title and message from settings, above the hero composer.
-export function HomeIntro({ title, message }: HomeIntroProps) {
+export function HomeIntro({ title, message, isNewcomer }: HomeIntroProps) {
+  const shown = message || (isNewcomer ? PROMISE : '')
   return (
-    <div className="mb-5">
+    <div className="animate-rise mb-3">
       <h1 id="home-title" tabIndex={-1} className="text-[length:var(--text-display)] font-semibold leading-[var(--text-display--line-height)] tracking-[var(--text-display--letter-spacing)] max-[479px]:text-[1.75rem] max-[479px]:leading-[2.125rem]">
         {title}
       </h1>
-      {message && <p className="mt-2 max-w-[56ch] text-title leading-relaxed text-ink-2">{message}</p>}
+      {shown && <p className="mt-2 max-w-[56ch] text-title leading-relaxed text-ink-2">{shown}</p>}
     </div>
   )
 }

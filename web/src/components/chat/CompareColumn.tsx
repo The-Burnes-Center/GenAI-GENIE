@@ -48,7 +48,10 @@ export function CompareColumn({ message, model, models, sessionId, dailyLimit, o
   return (
     <section aria-labelledby={`col-${message.id}`} aria-busy={isStreaming} className="group/turn min-w-0 rounded-lg border border-edge-strong bg-surface">
       <header className="grid gap-1 border-b border-edge px-3.5 py-3">
-        <h2 id={`col-${message.id}`} className="text-ui font-semibold">{label}</h2>
+        <h2 id={`col-${message.id}`} className="text-ui font-semibold">
+          {message.turn !== undefined && <span className="vh">{`Message ${message.turn + 1}, `}</span>}
+          {label}
+        </h2>
         <div className="flex flex-wrap items-center gap-2 text-small text-ink-2">
           <ColumnStatus message={message} />
         </div>

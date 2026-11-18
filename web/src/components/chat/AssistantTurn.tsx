@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useState } from 'react'
+import { useCallback, useDeferredValue, useState, type ReactNode } from 'react'
 import type { ModelConfig, Rating } from '../../api/types'
 import { suggestLargerModel } from '../../chat/error-copy'
 import { sourceElementId } from '../../chat/source-ids'
@@ -20,10 +20,12 @@ export interface AssistantTurnProps {
   onRetry?: () => void
   onChooseModel?: () => void
   onFeedback: (rating: Rating) => void
+  // Shown at the end of the answer, for example the answer helpers on the last one.
+  extras?: ReactNode
 }
 
 // One answer: who wrote it, thinking, notes, the text, sources, then actions. Errors replace nothing already shown.
-export function AssistantTurn({ message, sessionId, models, dailyLimit, isLast, onRetry, onChooseModel, onFeedback }: AssistantTurnProps) {
+export function AssistantTurn({ message, sessionId, models, dailyLimit, isLast, onRetry, onChooseModel, onFeedback, extras }: AssistantTurnProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const model = models.find((candidate) => candidate.modelId === message.modelId)
   const modelLabel = model?.label ?? 'The model'
@@ -87,6 +89,7 @@ export function AssistantTurn({ message, sessionId, models, dailyLimit, isLast, 
           isAlwaysVisible={isLast}
         />
       )}
+      {extras}
     </article>
   )
 }

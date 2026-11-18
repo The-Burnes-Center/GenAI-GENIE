@@ -46,14 +46,14 @@ export function AppShell() {
         )}
         <div className="flex h-dvh min-w-0 flex-col" inert={isDrawerOpen}>
           <Topbar value={topbar} isSidebarHidden={!sidebar.isOpen} onOpenSidebar={sidebar.open} />
-          <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 overflow-y-auto outline-none [scrollbar-gutter:stable]">
-            <div key={pathname} className="animate-view h-full">
+          <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto outline-none [scrollbar-gutter:stable]">
+            <PasskeyPrompt />
+            <div key={pathname} className="animate-view min-h-0 flex-1">
               <Outlet />
             </div>
           </main>
         </div>
       </div>
-      <PasskeyPrompt />
       <RouteFocus />
     </TopbarContext.Provider>
   )

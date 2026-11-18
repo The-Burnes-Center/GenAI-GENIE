@@ -1,4 +1,5 @@
 import { accountRoutes } from './account-routes'
+import { assistRoutes } from './assist-routes'
 import { adminCatalogRoutes } from './admin-catalog-routes'
 import { adminOpsRoutes } from './admin-ops-routes'
 import { adminUserRoutes } from './admin-user-routes'
@@ -12,6 +13,7 @@ import type { MockRoute } from '../route-types'
 export const ALL_ROUTES: MockRoute[] = [
   ...publicRoutes,
   ...accountRoutes,
+  ...assistRoutes,
   ...sessionRoutes,
   ...chatRoutes,
   ...workspaceRoutes,

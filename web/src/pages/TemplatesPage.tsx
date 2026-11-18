@@ -7,6 +7,7 @@ import { ALL_CATEGORIES, templatesInCategory, visibleCategories } from '../chat/
 import { PageStatus } from '../components/chat/PageStatus'
 import { ErrorText, LoadingText } from '../components/chat/StatusText'
 import { EmptyState, Tabs } from '../components/ui'
+import { useMarkSeenOnVisit } from '../chat/use-tip'
 import { useTopbar } from '../layout/topbar-context'
 
 // Gallery of starting points. Choosing one opens a new chat with the template and its starter prompt in the composer.
@@ -15,6 +16,7 @@ export function TemplatesPage() {
   const navigate = useNavigate()
   const [category, setCategory] = useState<string>(ALL_CATEGORIES)
   useTopbar('Templates')
+  useMarkSeenOnVisit('templates')
 
   if (bootstrap.isPending) return <PageStatus><LoadingText /></PageStatus>
   if (bootstrap.isError) return <PageStatus><ErrorText error={bootstrap.error} /></PageStatus>

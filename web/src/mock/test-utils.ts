@@ -9,6 +9,7 @@ export function resetMockForTests(): void {
   mockTiming.firstEventMs = 0
   mockTiming.tokenDelayMs = 0
   mockTiming.thinkingDelayMs = 0
+  mockTiming.assistDelayMs = 0
   window.sessionStorage.clear()
   resetStore(Date.parse('2026-11-17T14:00:00.000Z'))
   resetMockPasskeys()

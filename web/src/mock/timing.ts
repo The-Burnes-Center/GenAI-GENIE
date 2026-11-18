@@ -4,6 +4,7 @@ export const mockTiming = {
   firstEventMs: 350,
   tokenDelayMs: 18,
   thinkingDelayMs: 40,
+  assistDelayMs: 700,
 }
 
 export function randomInRange([low, high]: [number, number]): number {

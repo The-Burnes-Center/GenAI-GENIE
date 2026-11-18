@@ -1,33 +1,48 @@
+import { useState, type KeyboardEvent } from 'react'
 import { Fingerprint } from '@phosphor-icons/react'
 import { useAuth } from '../auth/use-auth'
+import { useHints } from '../chat/use-hints'
 import { Button, toast } from './ui'
 import { useAsyncAction } from './use-async-action'
 
-// Offered once after a password or email-code sign-in. A non-modal card: it never steals focus or blocks.
+// Offered once after a password or email-code sign-in, as a slim bar at the top of the page. It sits in the
+// page flow, so it can never cover the message box or any button, and it never takes focus.
+// Never in a person's first session: it shows only if the welcome card was already done when this session
+// began, which means they finished first-run on an earlier visit. That is read once and not revisited.
 export function PasskeyPrompt() {
   const { state, enrollPasskey, dismissPasskeyPrompt } = useAuth()
   const { busy, error, run } = useAsyncAction()
+  const { seen } = useHints()
+  const [isReturning] = useState(() => seen.includes('welcome'))
 
-  if (state.status !== 'signedIn' || !state.promptPasskey) return null
+  if (state.status !== 'signedIn' || !state.promptPasskey || !isReturning) return null
+
+  // Escape counts as "Not now" while focus is in the bar.
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key !== 'Escape') return
+    event.preventDefault()
+    dismissPasskeyPrompt()
+  }
 
   return (
     <section
       role="region"
       aria-labelledby="passkey-prompt-title"
-      className="ui-toast fixed bottom-4 left-4 right-4 z-[55] grid gap-2.5 rounded-xl border border-edge-strong bg-raised p-4 shadow-pop sm:left-auto sm:bottom-6 sm:right-6 sm:w-[380px]"
+      onKeyDown={onKeyDown}
+      className="flex flex-none flex-wrap items-center gap-x-4 gap-y-2 border-b border-edge bg-sunken px-4 py-2 md:px-8"
     >
-      <h2 id="passkey-prompt-title" className="flex items-center gap-2 text-body font-semibold">
-        <Fingerprint size={20} className="text-accent" aria-hidden="true" />
-        Add a passkey
-      </h2>
-      <p className="text-ink-2">
-        Sign in with Face ID, Touch ID or a security key instead of a password.
+      <p className="flex min-w-0 flex-1 basis-64 items-start gap-2 text-ui text-ink-2">
+        <Fingerprint size={20} className="mt-px shrink-0 text-accent" aria-hidden="true" />
+        <span>
+          <b id="passkey-prompt-title" className="font-semibold text-ink">Add a passkey.</b> Sign in with Face ID, Touch ID or a security key instead of a password.
+        </span>
       </p>
-      {error && <p role="alert" className="text-danger">{error}</p>}
+      {error && <p role="alert" className="basis-full text-danger">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <Button
           variant="primary"
           size="sm"
+          className="pointer-coarse:min-h-11!"
           isPending={busy}
           pendingLabel="Waiting for your device"
           onPress={() => void run(async () => {
@@ -37,8 +52,8 @@ export function PasskeyPrompt() {
         >
           Set up a passkey
         </Button>
-        <Button size="sm" onPress={() => dismissPasskeyPrompt()}>Not now</Button>
-        <Button variant="ghost" size="sm" onPress={() => dismissPasskeyPrompt({ forever: true })}>Don't ask again</Button>
+        <Button size="sm" className="pointer-coarse:min-h-11!" onPress={() => dismissPasskeyPrompt()}>Not now</Button>
+        <Button variant="ghost" size="sm" className="pointer-coarse:min-h-11!" onPress={() => dismissPasskeyPrompt({ forever: true })}>Don't ask again</Button>
       </div>
     </section>
   )

@@ -9,7 +9,7 @@ export function ToastHost() {
     <ToastRegion
       queue={queue}
       aria-label="Notifications"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-[90] grid justify-items-center gap-2 px-4 lg:justify-items-end lg:px-6 outline-none"
+      className="pointer-events-none fixed inset-x-0 top-14 z-[90] grid justify-items-center gap-2 px-4 lg:justify-items-end lg:px-6 outline-none"
     >
       {({ toast: item }) => {
         const { message, tone, actionLabel, onAction } = item.content

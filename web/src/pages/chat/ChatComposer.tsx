@@ -1,7 +1,7 @@
-import type { RefObject } from 'react'
+import type { FocusEvent, RefObject } from 'react'
 import { CaretDown } from '@phosphor-icons/react'
 import { SelectValue } from 'react-aria-components'
-import type { AttachmentRef, ModelConfig, Workspace } from '../../api/types'
+import type { AttachmentRef, HintId, ModelConfig, Workspace } from '../../api/types'
 import { modelBlockedByFiles, pickCapableModel, type AttachWarning } from '../../chat/attach-rules'
 import type { useAttachments } from '../../chat/use-attachments'
 import { AttachMenu } from '../../components/chat/AttachMenu'
@@ -24,6 +24,10 @@ interface ChatComposerProps {
   onWorkspaceChange: (workspaceId: string) => void
   isThinkingDeep: boolean
   onThinkingChange: (isDeep: boolean) => void
+  // Using a tool counts as having seen its tip.
+  onToolUsed: (hint: HintId) => void
+  onDraftStart?: () => void
+  onDraftBlur?: (event: FocusEvent<HTMLTextAreaElement>) => void
   isStreaming: boolean
   closedReason?: string
   isOffline: boolean
@@ -62,12 +66,15 @@ export function ChatComposer(props: ChatComposerProps) {
       onSend={props.onSend}
       onStop={props.onStop}
       textareaRef={props.textareaRef}
+      onDraftStart={props.onDraftStart}
+      onDraftBlur={props.onDraftBlur}
       tools={
         <>
           <AttachMenu
             canSeeImages={model.capabilities.vision}
             imageReason={`${model.label} can't see images.`}
             onFiles={attachments.add}
+            onOpen={() => props.onToolUsed('attach')}
             onSwitchModel={visionModel ? () => props.onModelChange(visionModel.modelId, 'switch') : undefined}
             isDisabled={Boolean(props.closedReason) || props.isOffline || props.isStreaming}
           />

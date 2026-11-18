@@ -2,13 +2,14 @@
 
 Genie is an open-source, multi-model AI chat app that you deploy to your own AWS account. It supports file attachments, side-by-side model comparison, prompt templates, and question answering over your own documents with citations. Admins manage users, models and settings from the app.
 
-It is fully serverless, so an idle deployment costs a few cents a month.
+It is fully serverless, so an idle deployment costs a few cents a month. The default model is Claude Haiku 5.5, which costs a fraction of a cent per answer; a daily message limit (100 per person by default) caps spend.
 
 ## What it does
 
 - **Chat with current models** through Amazon Bedrock: Claude, GPT, Nova, Mistral, DeepSeek, Qwen, Grok and others. Admins choose which models are available.
 - **Full-length answers and full conversations.** Replies can use each model's full output length, and the whole conversation is sent every turn. Nothing is quietly cut short; if a model can't fit the history, Genie says so.
 - **Attach files and images.** PDFs, Word documents, spreadsheets and images. Models that can't read files directly get the extracted text, so attachments work with every model.
+- **Made for people new to AI.** A short welcome on the first visit, starter tasks drawn from everyday public-sector work, a **Help me ask** button that turns a rough idea into a clear request (with blanks to fill in), buttons under each answer to make it shorter or simpler or to ask what to double-check, one-time tips, and a short **Learn** page. Admins set the "what not to share" rules and training links.
 - **Think harder** on models that support extended reasoning, with the reasoning shown in a collapsible section.
 - **Compare** two or three models on the same prompt, then continue with the best answer in a normal chat.
 - **Templates** for common work: summaries, plain-language rewrites, emails, agendas, translations.

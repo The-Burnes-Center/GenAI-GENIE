@@ -6,7 +6,7 @@ Stack for the build: React 19, Tailwind CSS 4, React Aria Components (RAC), `@ph
 
 ## 1. Direction in one paragraph
 
-Genie is a quiet reading-and-writing room, not a dashboard and not a robot. Content is the hero: one wide column of text, one composer, almost no chrome. Identity comes from type (Geist), a single deep teal accent, cool paper-gray surfaces, and generous spacing, not from gradients, glow or illustration. The mark is "Room": a rounded box with a slot in its left wall and a line of text passing through it, a calm room that words come into. No lamp, no sparkle, no letter.
+Genie is a quiet reading-and-writing room, not a dashboard and not a robot. Content is the hero: one wide column of text, one composer, almost no chrome. Identity comes from type (Geist), a single deep teal accent, cool paper-gray surfaces, and generous spacing, not from gradients, glow or robots. One small spot illustration, built from the mark's own geometry, appears on the first-run welcome card and the Learn page (section 18). The mark is "Room": a rounded box with a slot in its left wall and a line of text passing through it, a calm room that words come into. No lamp, no sparkle, no letter.
 
 ## 2. Principles
 
@@ -30,11 +30,12 @@ Sign in area (no sidebar)
   /suspended         account suspended
 
 App shell (sidebar + topbar)
-  /home              new chat (welcome, composer, template suggestions)
+  /home              new chat (title, composer, starter tasks or recent chats)
   /chat/:id          conversation
   /compare           2 to 3 models, one prompt
   /templates         gallery
   /workspaces        list
+  /learn             the basics for people new to AI (sections with anchors)
   /workspaces/:id    detail, documents, "Chat with this workspace"
   /history           search, rename, delete, delete all
   /account           passkeys, password, theme
@@ -42,17 +43,17 @@ App shell (sidebar + topbar)
   /admin/users       invite, approval queue, roles, suspend
   /admin/models      enable, default, test, rename, add
   /admin/templates   list; /admin/templates/:id and /new editor
-  /admin/settings    welcome, models and limits, sign-up
+  /admin/settings    welcome, models and limits, help and learning, sign-up
   /admin/usage       totals, daily chart, by model, by person
   /admin/feedback    thumbs-down queue
   /admin/audit       admin actions
   404                "We can't find that page"
 ```
 
-**Sidebar (chat mode):** logo and close, New chat (primary outline, `Alt N`), Compare, Templates, Workspaces, search field, history grouped Today / Yesterday / Previous 7 days / Older (newest 50, infinite scroll in the build), All chats, then the account button (opens a menu: Account and passkeys, theme, keyboard shortcuts, Admin console, Sign out).
+**Sidebar (chat mode):** logo and close, New chat (primary outline, `Alt N`), Compare, Templates, Workspaces, Learn, search field, history grouped Today / Yesterday / Previous 7 days / Older (newest 50, infinite scroll in the build), All chats, then the account button (opens a menu: Account and passkeys, theme, keyboard shortcuts, Admin console, Sign out).
 **Sidebar (admin mode):** Back to Genie, then Users (with a "2 waiting" badge), Models, Templates, Settings, Usage, Feedback, Audit log.
 **Topbar:** sidebar toggle and New chat (only when the sidebar is hidden), chat title with model and workspace in muted text. Nothing else. There is no per-chat settings button (temperature and length controls were removed; see section 9).
-**Composer tools:** Attach, Workspace, Think harder (only on models that support it), model picker, send.
+**Composer tools:** Attach, Workspace, Think harder (only on models that support it), Help me ask (only when the draft has enough words to improve), model picker, send.
 
 ### Layout grid and breakpoints
 
@@ -111,6 +112,9 @@ Defined in `tokens.css` as `--color-*` inside Tailwind's `@theme` (so `bg-canvas
 | `danger-soft` + ink | #fdecea / #8f1d14 | #3a1614 / #ffb4ab | Error blocks |
 | `warn-soft` + ink | #fcf1d6 / #6e4700 | #33270a / #f5cf7a | Limit and warning banners |
 | `ok-soft` + ink | #e1f2e6 / #17572f | #12301c / #8fdba6 | Ready and passed badges |
+| `warm-soft` / `warm-soft-ink` | #fbeee3 / #6b3410 | #2b1f16 / #f3cfa8 | Beginner guidance only: welcome card, tips, starter icon tiles, [blank] marks |
+| `warm` | #9a4f12 | #e9a766 | Icons and illustration strokes on warm-soft or surface (never text on its own) |
+| `warm-edge` | #ebd2bb | #4a3727 | Decorative border of warm cards |
 | `focus` | #0a6573 | #7ad3e0 | Focus ring (2 px, 2 px offset) |
 | `code-*` | see tokens | see tokens | Code block and syntax colors |
 
@@ -189,7 +193,7 @@ Each maps to a React Aria Components primitive where one exists. States listed a
 | Drop zone | `DropZone`, `FileTrigger` | idle, drag-over (accent wash), invalid type (toast) |
 | Dialog, confirm | `ModalOverlay`, `Modal`, `Dialog` (`role=alertdialog` for destructive) | focus starts on Cancel for destructive; Esc closes; focus returns to trigger |
 | Tooltip | `TooltipTrigger`, `Tooltip` | 500 ms delay, then instant for siblings; never the only carrier of a label |
-| Toast | `UNSTABLE_ToastRegion` (RAC) | success 6 s, pauses on hover and focus; errors persist; polite live region; Undo action |
+| Toast | `UNSTABLE_ToastRegion` (RAC), top right | success 6 s, pauses on hover and focus; errors persist; polite live region; Undo action |
 | Disclosure | `Disclosure` | Thinking, Sources, "Show the numbers as a table" |
 | Progress | `ProgressBar` | document upload |
 | Table | `Table` (desktop), stacked rows on phone | sortable columns not needed at v2; empty header cells get a visually hidden "Actions" |
@@ -202,7 +206,7 @@ Each maps to a React Aria Components primitive where one exists. States listed a
 | Code block | custom | language label, Copy code button, scrollable and focusable `pre` |
 | Markdown | `react-markdown` + `remark-gfm` | tables sit in a focusable scroll region |
 | Bar chart | custom SVG | one series, direct axis labels, table alternative in a disclosure |
-| Passkey prompt | `Dialog` non-modal (`role=region`) | add, not now, don't ask again |
+| Passkey prompt | slim bar in the page flow (`role=region`) | add, not now, don't ask again, Escape is not now |
 
 ## 11. Motion
 
@@ -215,7 +219,7 @@ Easing: `--ease-out: cubic-bezier(.23,1,.32,1)` for anything entering or respond
 | Popover and tooltip | 150 ms | origin-aware; tooltip waits 500 ms, siblings skip delay |
 | View change, message appear, dialog | 200 ms | fade plus 4 px rise |
 | Sidebar open and close | 200 ms (desktop), 280 ms (drawer) | no animation when toggled by keyboard on desktop is acceptable; kept at 200 ms |
-| Toast in | 280 ms | rises 12 px |
+| Toast in | 280 ms | drops in 12 px from the top right, below the top bar, so it never covers Save, Send or the composer tools |
 | Streaming | no animation | text simply appears; caret blinks at 1 Hz |
 
 Only `transform` and `opacity` animate, except the desktop sidebar's grid column. No scroll hijacking, no parallax, no stagger on lists longer than 4.
@@ -228,8 +232,8 @@ Voice: calm, direct, plain. Short sentences, active voice, second person. Say "c
 
 | Situation | Copy |
 |---|---|
-| Home title and message | "Welcome to Genie" / "Ask a question, draft a message, or work from your team's documents. Your chats are saved to your history." |
-| Disclaimer | "Genie can make mistakes. Check important facts before you share or act on them." |
+| Home title and message | "How can I help today?" / no message (matches the backend default). First visits and people with no chats see a one-line promise instead: "Tell Genie what you need, like you would a coworker. It drafts, summarizes and explains. You decide what to use." |
+| Disclaimer (footer, home and while an answer is being written) | "Genie can make mistakes. Check important facts before you share or act on them." Under a finished answer it is replaced by the contextual line in section 18. |
 | Composer placeholder | "Ask anything, or drop in a file" |
 | Think harder tooltip | "Slower, but better on tricky questions" |
 | Thinking indicator | "Thinking 12s" then "Thought for 18s" |
@@ -253,6 +257,8 @@ Voice: calm, direct, plain. Short sentences, active voice, second person. Say "c
 | 404 | "We can't find that page. The link may be old, or the chat may have been deleted. Your other chats are safe." |
 
 Do not use: "inference", "tokens", "context window", "prompt engineering", "LLM", "hallucination", "RAG", "Bedrock" in staff-facing copy. Admin pages may say tokens (with a one-line explanation), Bedrock, model id.
+
+Beginner copy follows the same rules at roughly grade 6 to 8, and names what goes wrong before it names the fix. The full list is in section 18.
 
 ## 13. Accessibility
 
@@ -290,13 +296,14 @@ Target: WCAG 2.2 AA.
 4. **Forgot password.** Email, then code, then new password. The page never confirms whether the email has an account.
 5. **Create account.** Email and password, then "Check your email" with a 6-digit code. If sign-up is closed the page says so with a Back to sign in button. If the domain is not allowed, an inline error names the allowed domains and keeps the form filled. After confirming, a person goes to "Waiting for approval" when approval is required, otherwise to sign in.
 6. **Pending and suspended** are full-page states with one clear action each (Check again, Sign out).
-7. **Passkey prompt** appears once after a non-passkey sign-in: a dismissible card (Set up a passkey, Not now, Don't ask again). It never steals focus and never blocks.
+7. **Passkey prompt** appears once after a non-passkey sign-in, and never in a person's first session (see section 18.2): a slim, dismissible bar at the top of the page, in the page flow (Set up a passkey, Not now, Don't ask again). It never steals focus, never covers anything, and Escape counts as Not now.
 8. **Account page:** Profile, Passkeys (name, date added, Remove with confirmation, Add a passkey), Change password, Appearance (Light, Dark, System), Sign out.
 
 ## 15. Admin additions
 
 - **Users:** a "Waiting for approval" table at the top (Approve, Decline with confirmation) with a count badge in the sidebar, then everyone with role select, status badge (Active, Invited, Suspended), last sign-in, and a menu (Send password reset, Suspend or Restore, Delete). An admin cannot change their own role, suspend or delete themselves; those controls are disabled.
 - **Settings:** Welcome (name, title, message, disclaimer, with a live preview), Models and limits (default model, "Model that names chats", daily messages per person with 0 meaning none, most models in a comparison, "Sources read per question" for `retrievalTopK`), Sign-up (Invitation only or Anyone with an allowed email, allowed domains, require approval).
+- **Help and learning** (see section 18): instructions sent with every chat, "what not to share" rules, learning links and a help contact, each with the limits and per-row errors described there.
 - **Models:** the table shows what each model can do in plain words, enable switch, default radio, last test result with the error text on failure, Test now, Rename, and Add a model from the available Bedrock list (added turned off until tested).
 
 ## 16. Verification
@@ -326,6 +333,130 @@ Things the designed screens need that `ARCHITECTURE.md` does not define. Each is
 12. **Passkey names.** Amplify's `associateWebAuthnCredential` takes no friendly name, so the list shows what Cognito returns (device label, date). Renaming a passkey is not offered.
 13. **Pending count in the sidebar.** The "2 waiting" badge needs the pending count on every admin page load (a count in `/api/me` for admins, or a cheap `?status=pending&count=1`).
 14. **Compare model limits per prompt.** `maxCompareModels` is in settings but the minimum (2) and the models allowed to run in parallel are not stated.
+
+## 18. First-time users
+
+Genie v1 had many screens and was built for staff "with varying technical proficiencies", many of whom had never typed a request to an AI. v2 started as a clean rewrite and lost the warmth and guidance. This section adds them back without bringing the clutter: no tour, no modal, no tips before a person can use the app, and no sparkles, wands or robots. Everything below lives where the work happens.
+
+### 18.1 Research, and what each finding changed
+
+| Finding | What it changed |
+|---|---|
+| 1. Beginners type keywords and restart instead of refining (NN/g, "AI Literacy"). | One-tap refine chips under the latest answer: Shorter, Simpler words, Add more detail, Make it a list, Friendlier tone. Each sends one plain sentence. |
+| 2 and 9. Welcome screens and fine print are invisible, and fluency outpaces error-spotting. | Safety cues sit under every answer, not on a first-run wall. The welcome card is short, sits on the page, and is never the only place a rule appears. |
+| 3. First-time users click broad example tasks (NN/g, "Onboarding New AI Users"). | Six job-based starter cards on the empty home. They fill the message box and never send. |
+| 4. People ask the bot what it can do and get wrong answers. | Features are labeled in plain words everywhere (Attach, Compare, Think harder, Help me ask, Workspaces, Templates). The backend gives the model accurate self-knowledge through `assistantInstructions`. |
+| 5. Trial and error prompting ("Why Johnny Can't Prompt", CHI 2023). | "Help me ask" rewrites a draft and shows what it added. Starter cards and templates give a well-formed example with [blanks]. |
+| 6. Search habits shape expectations. | "It is a conversation, not a search box" is said once on the Learn page and again in the refine tip, at the moment the first answer arrives. |
+| 7. A generic "AI can make mistakes" footer is inconsistent. | The footer stays as a short line on home. Under a finished answer it is replaced by a line that names what is in that answer (see 18.4). |
+| 8. First-person hedging and self-critique reduce overreliance (Kim et al. 2024; Microsoft Research). | "What should I double-check?" asks the model what might be wrong or out of date and which names, numbers, dates and references to check, and where. |
+| 10. Government trials found training essential (UK Copilot, NJ AI Assistant with InnovateUS). | A Learn page in the sidebar with a "Try it" for each lesson, and admin-managed links to training (the InnovateUS course by default). |
+
+Not done, on purpose: forced multi-step tours, modal walls, tips before the app can be used, unlabeled icons or vague names, a long request formula up front, features buried in menus, an "AI is magic" tone, a generic disclaimer treated as the safety measure.
+
+### 18.2 Screens and states
+
+**Home, first visit (hint `welcome` unseen).** Title, then the one-line promise ("Tell Genie what you need, like you would a coworker. You decide what to use."), then the welcome card, then the message box, then six starter cards, with no passkey bar. The card is a `section` on the page (not a dialog): the message box below stays usable and nothing traps focus. It is deliberately short, so at 1280x800 the message box and the first row of starter cards are above the fold, and at 360x780 the message box is. The Room illustration (40 px) sits beside the heading "Three things to know". The three points are one short block each: what Genie is ("An AI assistant. Tell it what you need and it writes back. Then keep talking to improve the answer."), what not to share, and "It can sound sure and still be wrong". From 720 px the points sit in three columns. "What not to share" is a disclosure (`details`): open from 720 px, closed on phones, showing the first two of `settings.dataRules` with "See all N rules" to `/learn#share` when there are more. It is hidden when the list is empty. Actions: "Try a first task" (fills the message box with the plain-language rewrite starter and selects its first [blank]), "Got it" (focus moves to the message box) and one "Learn the basics" link. While the card is up, the starter group does not repeat that link.
+The card goes away for good, and the `welcome` hint is saved, when any of these happen: "Got it" or "Try a first task"; a starter card is picked; home opens from a Learn "Try it" or a template link; a message is sent; or the person types their first character. Typing keeps the card on screen until the message box loses focus (unless focus moves into the card itself), so the box does not jump under the caret. The card folds up over 200 ms (grid rows and opacity), and not at all under reduced motion.
+
+**Home, returning (welcome seen).** Title only, then at most one feature tip, the message box, template chips (admin curated, unchanged), "Pick up where you left off" (the three newest chats, compare chats open in Compare), and a quiet "New to AI? Learn the basics" line. If the person has dismissed the card and the history loaded with no chats, they still get the starter cards instead of the quiet layout. A failed history load never makes someone look new. The recent chats use the sidebar's history query, so they cost no extra request.
+
+**Passkey offer.** Never in a person's first session. It shows only if `welcome` was already in `me.hints` when the app first loaded the session, which means first-run was finished on an earlier visit. That is read once and never revisited, so dismissing the welcome card does not make it appear mid-session. It is a slim bar at the top of the page, in the page flow (not a fixed card), so it cannot cover the message box, Send, the model picker, the Help me ask panel or the answer buttons at 1280 or 360 px. Escape, while focus is in the bar, counts as "Not now".
+
+**Starter tasks.** Summarize a document, Rewrite in plain language, Draft a reply to a resident, Plan a meeting, Explain a policy, Translate a message. Two more (List action items, Write an FAQ) appear on the Learn page. Each has an icon on a warm tile, a short title and one line. If an enabled admin template has a matching title (for example "agenda" or "plain"), its starter text and hidden instructions are used and the "Template: ..." chip appears, otherwise a built-in example is used. All examples contain [bracketed] blanks. When the box holds blanks, a line reads "Fill in the [bracketed] parts, then send." with a "Go to next blank" button (Tab leaves a text box, so the button selects the next blank).
+
+**Answer helpers (under the latest finished answer).** A group "Change this answer" with five chips, then a sunken row with the verification line and a "What should I double-check?" button. Hidden while streaming, after an error, after Stop, and when the answer is empty. Disabled (not hidden) when offline or at the daily limit, since the usage notice already says why. They send as an ordinary message, so they count toward the daily limit and show in history, which is why the sentences read as something the person said. Because the buttons unmount when they send, focus moves to the message box (without scrolling), so the reading position stays put and keyboard users keep their place. First time only (hint `refine`), one short line sits beside the label, "Tap one, or type your own change. No need to start over." with a "Got it" link. There is no separate tip block. Sending a second message by hand also retires it.
+In Compare the same group appears once under the whole last turn, after every model has finished. Its wording changes to "Change all the answers" and "These answers include...", the check button keeps its name, and a follow-up goes to every chosen model. Focus goes to the message box there too.
+
+**Help me ask.** A labeled button (pencil icon, the label stays visible even at 360 px) in the message box tool row, always shown. With too little in the box, pressing it says what to do in a polite status line under the box and moves focus to the box: "Type a rough idea first, then press Help me ask." (empty), "Add a few more words, then press Help me ask." (under 12 characters or 3 words) or a too-long message (over 8000). Otherwise it opens a panel above the tool row. Opening, and the result arriving, scroll the panel into view (`block: nearest`, smooth unless reduced motion) so the buttons are visible. Pressing the button again while the panel is open moves focus into the panel; it does not close it. The panel has four states:
+1. Loading: a spinner, "Writing a clearer version of your request", and a Cancel button, announced politely as "Writing a clearer version." While it runs the message box is read-only, so the result cannot overwrite newer text. Cancel and sending both drop the result.
+2. Ready: heading "A clearer version" (focus moves to it if the person is still in the message box, so a screen reader reads it), the suggestion with [blanks] marked, "What I added" as a short list (or "Nothing. Your request was already clear" when the list is empty), and three buttons: "Use this version", "Edit it first" (turns the suggestion into an editable field, then "Done editing") and "Keep mine". "Use this version" replaces the draft, selects the first blank (shown in the accent color so it is clearly visible), and shows a toast "Your message was replaced." with Undo. Escape closes the panel and keeps the person's text.
+3. Error: a red notice with the server's words and "Try again" and "Keep mine". Busy (503) and failed (502) can be retried. A failed rewrite is not counted against the daily cap.
+4. Daily limit (`LIMIT_REACHED`, 429; 50 a day on its own counter): a warning notice with the server's words ("You have used Help me ask 50 times today. It starts over tomorrow.") and "Keep mine". No retry. The button is disabled while the message box is closed (offline, chat limit, streaming).
+[Bracketed] blanks are marked with `warm-soft` background, a dotted underline and medium weight, and keep their brackets, so the mark never relies on color.
+
+**Learn page `/learn`.** One 720 px column, each section is a `section` with an `h2` and an anchor id (`how`, `ask`, `tools`, `model`, `check`, `share`, `try`, `learn`, `help`). A hash link scrolls to the section and focuses its heading. Header: the Room illustration and "Learn the basics". Sections:
+1. How Genie works: three short sentences, including "It is a conversation, not a search box."
+2. How to ask: four numbered habits (Say who it is for, Give background, Ask for a format, Then change it), each with a "Try it" link that opens a new chat with a filled example. Nothing sends.
+3. What the buttons do: Attach, Workspace ("A shared folder of your team's documents that Genie can search and cite"), Compare, Think harder and Help me ask, one line each.
+4. Choosing a model: the default (named from settings) is the everyday choice, quick and good for most work. The others are for harder jobs and cost more to run. Not sure? Stay with the default.
+5. When to double-check: five things (names and titles, numbers and amounts, dates and deadlines, laws and rules, quotes and sources) and a three-step "How to check", ending with the "What should I double-check?" button.
+6. What not to share: `settings.dataRules`, hidden when empty.
+7. Try these: the eight starter tasks.
+8. Keep learning: `settings.learnLinks`, only the ones whose address is https, whatever is stored. Each opens in a new tab and says so in text and for screen readers. Hidden when none remain.
+9. Need help?: `settings.helpContact`, hidden when empty. An email (the same rule the server uses: a domain ending in two or more letters, no spaces or query characters) becomes a `mailto:` link with the address encoded, an https URL an external link, anything else shows nothing.
+List items typed by admins use position keys, since duplicates are allowed.
+
+**First-use tips.** One inline note directly above the message box (not a popover, so it never covers content, works at 360 px and for keyboard and screen reader users). Icon, a bold name, one or two sentences, an optional link to the feature, and "Got it". It never takes focus, sits in the tab order, and goes away on "Got it" or Escape (Escape only while focus is in the tip or the message box and no menu or dialog is open). At most one shows at a time, none while the welcome card shows, none while an answer streams. Feature tips are also paced: at most one per app session (a page load), and none in a session that showed the welcome card, so four tips never arrive back to back. The `refine` hint is not part of that count, because it sits inside the answer helpers and only appears once there is an answer. On home the order is Attach, Templates, Workspaces (only if the person can see workspaces) and Compare. In a chat after a finished answer it is the refine hint, then Think harder (only on models that support it). Using the feature counts as seen: opening the Attach menu, toggling Think harder, choosing a workspace, picking a template chip, or opening the Compare, Templates or Workspaces page.
+
+**Account.** A "Beginner tips" section with "Show tips again" (`DELETE /api/me/hints`). The button is never disabled, so focus stays on it, and a polite status beside it says "Tips will show again." There is no count.
+
+**Admin settings.** A "Help and learning" section between the category list and Sign-up: "Instructions for Genie" (a text area, with the explanation that it is sent with every chat before any template's own instructions, and a live count of 4000), "What not to share" (a rule list: up to 10 rows of 200 characters, reorder, remove, add), "Learning links" (up to 8 links, each with title up to 80, an https address up to 500 and an optional description up to 200, reorder, remove, add) and "Who to contact for help" (empty, an email, or https, up to 200). Rows keep an id of their own, so focus stays on the right row after a move, and after a remove it goes to the next row (or the previous one, or "Add" when the list is empty). Errors are per row and linked to the field, the first one gets focus on save, and the unsaved-changes guard covers the new fields. The email check matches the server's, so `a@b.c` is refused inline. The save sends the whole settings object.
+
+### 18.3 Hints
+
+Seven ids: `welcome`, `think-harder`, `compare`, `workspaces`, `templates`, `attach`, `refine`. They come on `me.hints` in the bootstrap response. Marking one adds it to a local list for this tab and patches the cache before the request goes out, and the save retries once. The local list is merged over what the server says, so a dismissed tip cannot come back during the visit even if the save fails or an older refetch lands late. It belongs to one email, and "Show tips again" clears it. The web list of ids is built from a record keyed by `HintId`, so the compiler rejects a missing or extra id.
+
+### 18.4 Copy table additions
+
+| Situation | Copy |
+|---|---|
+| Home promise (no admin message) | "Tell Genie what you need, like you would a coworker. You decide what to use." |
+| Welcome heading | "Three things to know" |
+| What Genie is | "An AI assistant. Tell it what you need and it writes back. Then keep talking to improve the answer." |
+| Sound sure | "It can sound sure and still be wrong. Check names, numbers, dates and laws before you send, sign or act on them." |
+| Starter group | "Or start with a task" |
+| Learn path | "New to AI? Learn the basics" |
+| Recent chats | "Pick up where you left off" |
+| Refine group label | "Change this answer" ("Change all the answers" in Compare) |
+| Refine sentences | "Make it shorter." / "Use simpler words. Aim for a 6th to 8th grade reading level." / "Add more detail." / "Turn this into a bulleted list." / "Make the tone friendlier and warmer." |
+| Check button and follow-up | Button "What should I double-check?". It sends: "What in your last answer might be wrong or out of date? List the names, numbers, dates and references I should check, and where to check them." (two sentences, the person's voice, because it appears in their chat) |
+| Verification line, with finds | "This answer includes dates and numbers. Check them against the source before you use them." The words come from what the answer contains (dates, numbers, laws or rules, quotes). Compare says "These answers include". |
+| Verification line, nothing found | "Check anything you will send, sign or act on against the source." |
+| Help me ask | Button "Help me ask", tooltip "Rewrite your request so it is clearer", panel "A clearer version", "What I added", buttons "Cancel" (while loading), "Use this version", "Edit it first", "Keep mine", toast "Your message was replaced." (Undo) |
+| Blanks hint | "Fill in the [bracketed] parts, then send." / "Go to next blank" |
+| Tip: Attach | "Attach a file. Add a PDF, a Word file or a photo and Genie reads it. Good for summaries and plain-language rewrites." |
+| Tip: Think harder | "Think harder. Slower, but better on tricky questions, like rules with many steps or long documents. Turn it on in the box below." |
+| Tip: Compare | "Compare. Send one request to 2 or 3 models and read the answers side by side. Handy when the answer matters." |
+| Tip: Workspaces | "Workspaces. A workspace is a shared folder of your team's documents. Genie can search it and cite where each point came from." |
+| Tip: Templates | "Templates. Not sure how to start? Pick a template. It fills the box with a ready-made request to edit." |
+| Hint: refine (one line beside "Change this answer") | "Tap one, or type your own change. No need to start over." |
+| Help me ask, too little text | "Type a rough idea first, then press Help me ask." / "Add a few more words, then press Help me ask." |
+| Help me ask, daily cap | "You have used Help me ask 50 times today. It starts over tomorrow." |
+| Help me ask, failed | "Genie could not suggest a clearer version. Try again, or send yours as it is." |
+| Passkey bar | "Add a passkey. Sign in with Face ID, Touch ID or a security key instead of a password." [Set up a passkey] [Not now] [Don't ask again] |
+| Tips reset | "Tips will show again." (status next to the button) |
+
+The verification line is built from simple patterns (dates, amounts and counts, laws and rules, quoted passages) after stripping code, list numbers and [1] source markers. It is a prompt to look, never a claim that something is wrong or right.
+
+### 18.5 Motion
+
+Entrances reuse the 4 px rise: 280 ms for the welcome card, tips, helpers and panel (`animate-rise`), and the starter, recent and learn blocks follow 90 ms later as one group (`animate-rise-late`), never staggered item by item. The Room illustration plays once: the through-line slides in from the left (600 ms, 120 ms delay), then the two text lines fade in (400 ms, 520 ms delay). The welcome card folds up over 200 ms when it goes (grid rows and opacity, a second exception to "only transform and opacity", like the sidebar column). Toasts now enter from the top and sit at the top right, below the top bar, so they never cover the control that caused them (Save, Send, the message box tools). Nothing loops. Under `prefers-reduced-motion: reduce` all of it is removed (`animation-name` is `none`; checked in the browser).
+
+### 18.6 Tokens and illustration
+
+New tokens, in `tokens.css` and the web copy (see the color table in section 5): `warm-soft`, `warm-soft-ink`, `warm`, `warm-edge`. Warm is a clay peach (hue about 25) used only for beginner guidance, so it never competes with the one teal accent and never reads as a warning (amber stays `warn-soft`). Starter icons sit on `warm-soft` tiles, the welcome card, tips and the "What not to share" rows use `warm-soft` with a `warm-edge` border, and [blanks] use `warm-soft` with dotted `warm` underline.
+`RoomIllustration` (`web/src/components/brand/RoomIllustration.tsx`) redraws the mark's geometry (frame with the slot in the left wall, the through-line, two or three text lines) on a 64-unit grid with `surface` inside, `accent` for frame and line, and `warm` for the text lines. It is decorative (`aria-hidden`), used at 72 px on the welcome card and 88 px on the Learn page, and has no other variant.
+
+Contrast of the new pairs, computed from the token hexes with WCAG 2.2 relative luminance (4.5:1 text, 3:1 icons and graphics). All pass.
+
+| Pair | Light | Dark | Needs |
+|---|---|---|---|
+| `ink` on `warm-soft` | 14.99 | 13.76 | 4.5 |
+| `ink-2` on `warm-soft` | 7.65 | 8.95 | 4.5 |
+| `ink-3` on `warm-soft` | 5.35 | 6.13 | 4.5 |
+| `warm-soft-ink` on `warm-soft` | 8.68 | 10.91 | 4.5 |
+| `accent` (links) on `warm-soft` | 5.91 | 7.93 | 4.5 |
+| `warm` on `warm-soft` (icons, underline) | 5.27 | 7.77 | 3 |
+| `warm` on `surface` (illustration, icons) | 6.00 | 8.31 | 3 |
+| `warm` on `canvas` | 5.63 | 8.95 | 3 |
+| `focus` on `warm-soft` | 5.91 | 9.33 | 3 |
+
+### 18.7 Accessibility and verification
+
+Run against the mock app (`npm run dev:mock`) with Playwright and axe-core (wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa, best-practice), at 1280x800 and 360x780, in light and dark: **56 scans, 0 violations**. Screens: home first run, Help me ask (loading, ready, just used, error, limit), a chat with answer helpers, Learn, Account, Admin settings at the Help and learning section, Compare with helpers, and a returning person's home with the passkey bar. A first pass of the Compare scans found two regions with the same name once a second message was sent; the column headings now carry the message number, and the re-run is clean.
+Behavior checks in the same run (86 of 86 pass): no passkey bar in a first session; the message box above the fold at both sizes and the first starter row above the fold at 1280x800; the card stays while typing and folds after blur; an empty Help me ask says what to do and focuses the box; Cancel is present and the box is read-only while loading; Use this version is in view after the result; pressing Help me ask with the panel open focuses the panel; the "Your message was replaced." and "Settings saved." toasts do not overlap Send or Save; focus is in the message box after a refine chip or the check button, in chat and in Compare; Show tips again keeps focus; removing a rule keeps focus in the list; the passkey bar sits above the message box with Send in view at both sizes, and Escape dismisses it. Earlier keyboard and coarse-pointer measurements (44 px targets, no horizontal scroll at 360) still hold, and the passkey bar buttons, the Cancel button and the "Got it" link on the hint use the same 44 px rule on touch screens. Unit tests cover the tip pacing, the saved-tip overlay (including a failed save and a late refetch), the passkey rules, the URL and email rules, the blocked reasons for Help me ask, the settings limits, and the panel states.
+Not done: a screen reader pass with VoiceOver and NVDA, real-device touch, and cross-browser runs beyond Chromium.
 
 ## Appendix A: contrast results
 

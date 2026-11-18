@@ -99,6 +99,12 @@
   --color-ok-soft: #e1f2e6;
   --color-ok-soft-ink: #17572f;
 
+  /* ---------- Color: warm (beginner guidance only: starter tiles, welcome card, [placeholder] marks) ---------- */
+  --color-warm-soft: #fbeee3;
+  --color-warm-soft-ink: #6b3410;
+  --color-warm: #9a4f12;            /* icon and illustration strokes on warm-soft or surface (3:1) */
+  --color-warm-edge: #ebd2bb;       /* decorative dividers only */
+
   /* ---------- Color: code ---------- */
   --color-code-bg: #eef2f2;
   --color-code-ink: #1b2a2a;
@@ -147,6 +153,11 @@
   --color-ok-soft: #12301c;
   --color-ok-soft-ink: #8fdba6;
 
+  --color-warm-soft: #2b1f16;
+  --color-warm-soft-ink: #f3cfa8;
+  --color-warm: #e9a766;
+  --color-warm-edge: #4a3727;
+
   --color-code-bg: #0b1010;
   --color-code-ink: #d8e3e3;
   --color-code-keyword: #7fb8f0;
@@ -193,6 +204,11 @@
     --color-warn-soft-ink: #f5cf7a;
     --color-ok-soft: #12301c;
     --color-ok-soft-ink: #8fdba6;
+
+    --color-warm-soft: #2b1f16;
+    --color-warm-soft-ink: #f3cfa8;
+    --color-warm: #e9a766;
+    --color-warm-edge: #4a3727;
 
     --color-code-bg: #0b1010;
     --color-code-ink: #d8e3e3;

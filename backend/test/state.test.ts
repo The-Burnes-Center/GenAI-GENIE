@@ -49,7 +49,7 @@ describe("seed on first read", () => {
   it("seeds the model catalog and templates on first list", async () => {
     const models = await listModels();
     expect(models).toHaveLength(DEFAULT_MODELS.length);
-    expect(models[0]?.modelId).toBe("us.anthropic.claude-sonnet-5-5");
+    expect(models[0]?.modelId).toBe("us.anthropic.claude-haiku-5-5");
     expect(models.every((m) => !("PK" in m))).toBe(true);
     expect((await listTemplates()).length).toBe(DEFAULT_TEMPLATES.length);
     expect(store.has("CONFIG|SEEDED#MODEL")).toBe(true);

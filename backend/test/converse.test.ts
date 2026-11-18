@@ -139,7 +139,7 @@ describe("thinking and temperature", () => {
     expect(thinkingFields(model(SONNET), "deep")).toEqual({
       thinking: { type: "adaptive", display: "summarized" }, output_config: { effort: "high" },
     });
-    expect(thinkingFields(model(SONNET), "standard")).toMatchObject({ output_config: { effort: "medium" } });
+    expect(thinkingFields(model(SONNET), "standard")).toMatchObject({ output_config: { effort: "low" } });
     expect(thinkingFields(model(SONNET), undefined)).toBeUndefined();
     expect(thinkingFields(model(GPT), "deep")).toBeUndefined();
   });

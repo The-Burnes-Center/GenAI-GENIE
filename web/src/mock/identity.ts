@@ -5,6 +5,7 @@ import type { ProfileStatus } from '../api/types'
 export const MOCK_TOKEN = 'mock-token'
 const SESSION_KEY = 'genie-mock-session'
 const AS_USER_KEY = 'genie-mock-as-user'
+export const SEEDED_HINTS_KEY = 'genie-mock-seed-hints'
 const DEFAULT_EMAIL = 'staff.member@example.org'
 
 export interface MockSignIn {
@@ -65,5 +66,17 @@ export function currentIdentity(): MockIdentity {
     email: signIn.email,
     isAdmin,
     status: signIn.status,
+  }
+}
+
+// Hints a new mock person starts with, from ?hints= on the page address. Empty by default, so a new email sees first-run.
+export function seededHints(): string[] {
+  const raw = readItem(SEEDED_HINTS_KEY)
+  if (!raw) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+  } catch {
+    return []
   }
 }

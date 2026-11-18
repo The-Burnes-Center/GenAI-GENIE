@@ -33,7 +33,7 @@ describe('mock handlers under msw/node', () => {
     const bootstrap = await fetch(`${origin}/api/bootstrap`, { headers: auth() })
     expect(bootstrap.status).toBe(200)
     const body = (await bootstrap.json()) as Bootstrap
-    expect(body.usage.limit).toBe(50)
+    expect(body.usage.limit).toBe(100)
 
     const sessions = await fetch(`${origin}/api/sessions`, { headers: auth() })
     expect(sessions.status).toBe(200)

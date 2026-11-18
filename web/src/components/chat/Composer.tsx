@@ -1,13 +1,17 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { ArrowUp, Books, Brain, FileText, Stop, X } from '@phosphor-icons/react'
 import { ToggleButton } from 'react-aria-components'
 import type { AttachmentRef } from '../../api/types'
 import { hasBlockingWarning, type AttachWarning } from '../../chat/attach-rules'
 import { checkMessageLimits } from '../../chat/limits'
+import { countPlaceholders, selectNextPlaceholder } from '../../chat/placeholders'
+import { useComposerAssist } from '../../chat/use-composer-assist'
 import type { useAttachments } from '../../chat/use-attachments'
-import { IconButton, Tooltip, buttonClass, cx } from '../ui'
+import { Button, IconButton, Tooltip, buttonClass, cx } from '../ui'
 import { ComposerNotices } from './ComposerNotices'
 import { FileChipList } from './FileChips'
+import { HelpMeAskButton } from './HelpMeAskButton'
+import { HelpMeAskPanel } from './HelpMeAskPanel'
 
 const MAX_HEIGHT_PX = 220
 const THINK_TOOLTIP = 'Slower, but better on tricky questions'
@@ -32,6 +36,11 @@ export interface ComposerProps {
   tools: ReactNode
   trailing?: ReactNode
   routeFocus?: boolean
+  // Show "Help me ask". On by default.
+  canAssist?: boolean
+  // First character typed into an empty box, and the box losing focus.
+  onDraftStart?: () => void
+  onDraftBlur?: (event: FocusEvent<HTMLTextAreaElement>) => void
   inputId: string
   label?: string
 }
@@ -43,6 +52,8 @@ export function Composer(props: ComposerProps) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const ownRef = useRef<HTMLTextAreaElement | null>(null)
   const innerRef = props.textareaRef ?? ownRef
+  const assist = useComposerAssist({ prompt, setPrompt, boxRef: innerRef })
+  const { help } = assist
   const isClosed = Boolean(closedReason) || Boolean(isOffline)
   const lengthProblem = checkMessageLimits(prompt, []) ? 'That message is too long. Attach it as a file instead.' : null
   const text = prompt.trim()
@@ -59,6 +70,7 @@ export function Composer(props: ComposerProps) {
   function submit() {
     if (!canSend || isStreaming) return
     onSend(text, attachments.refs)
+    help.close()
     setPrompt('')
     attachments.clear()
     innerRef.current?.focus()
@@ -74,6 +86,7 @@ export function Composer(props: ComposerProps) {
     }
   }
 
+  const blanks = countPlaceholders(prompt)
   const chips = (props.contextChips ?? []).map((chip) => (
     <li key={chip.label} className="inline-flex min-h-8 max-w-[260px] items-center gap-2 rounded-md bg-accent-soft pl-2 pr-1 text-small text-accent-soft-ink">
       {chip.icon === 'workspace' ? <Books size={16} aria-hidden="true" className="shrink-0" /> : <FileText size={16} aria-hidden="true" className="shrink-0" />}
@@ -117,15 +130,28 @@ export function Composer(props: ComposerProps) {
         disabled={isClosed}
         data-route-focus={props.routeFocus ? '' : undefined}
         placeholder={isOffline ? 'You’re offline' : (closedReason ?? props.placeholder ?? 'Ask anything, or drop in a file')}
-        onChange={(event) => setPrompt(event.target.value)}
+        readOnly={help.state === 'loading'}
+        onChange={(event) => {
+          if (prompt === '' && event.target.value !== '') props.onDraftStart?.()
+          assist.clearNote()
+          setPrompt(event.target.value)
+        }}
+        onBlur={props.onDraftBlur}
         onKeyDown={onKeyDown}
-        className="max-h-[220px] min-h-7 w-full resize-none bg-transparent px-2 py-1.5 text-body leading-[26px] outline-none disabled:cursor-not-allowed"
+        className="max-h-[220px] min-h-7 w-full resize-none bg-transparent px-2 py-1.5 text-body leading-[26px] outline-none selection:bg-accent selection:text-accent-ink read-only:text-ink-2 disabled:cursor-not-allowed"
       />
-      <div className="flex min-w-0 items-center gap-1">
-        {props.tools}
-        <span className="min-w-0 flex-1" />
-        {props.trailing}
-        <SendButton isStreaming={isStreaming} canSend={canSend} label={props.sendLabel ?? 'Send message'} onStop={onStop} />
+      {blanks > 0 && !isClosed && <BlanksHint onNext={() => innerRef.current && selectNextPlaceholder(innerRef.current, (innerRef.current.selectionEnd ?? 0))} />}
+      <p role="status" className="px-2 text-small text-ink-2 empty:hidden">{assist.note}</p>
+      {help.isOpen && <HelpMeAskPanel help={help} panelRef={assist.panelRef} onUse={assist.applySuggestion} onKeepMine={assist.keepMine} />}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1 max-[479px]:basis-full">
+          {props.tools}
+          {props.canAssist !== false && <HelpMeAskButton isOpen={help.isOpen} isDisabled={isClosed || isStreaming} onPress={assist.press} />}
+        </div>
+        <div className="ml-auto flex min-w-0 items-center gap-1 max-[479px]:w-full">
+          <div className="min-w-0 max-[479px]:flex-1">{props.trailing}</div>
+          <SendButton isStreaming={isStreaming} canSend={canSend} label={props.sendLabel ?? 'Send message'} onStop={onStop} />
+        </div>
       </div>
       {attachments.isUploading && <p className="vh" role="status">Uploading files</p>}
     </form>
@@ -176,3 +202,13 @@ export function ThinkToggle({ isSelected, onChange }: ThinkToggleProps) {
   )
 }
 
+
+// Shown while the box holds [bracketed] blanks. The button jumps to the next one, since Tab leaves the box.
+function BlanksHint({ onNext }: { onNext: () => void }) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 text-small text-ink-2">
+      Fill in the [bracketed] parts, then send.
+      <Button variant="link" onPress={onNext} className="text-small">Go to next blank</Button>
+    </p>
+  )
+}

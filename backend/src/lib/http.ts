@@ -1,7 +1,18 @@
 import { randomUUID } from "node:crypto";
 import type { ErrorBody } from "./api-types.js";
 
-export type ErrorCode = "BAD_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "PENDING_APPROVAL" | "SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "UNAVAILABLE" | "INTERNAL";
+export type ErrorCode =
+  | "BAD_REQUEST"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "PENDING_APPROVAL"
+  | "SUSPENDED"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "LIMIT_REACHED"
+  | "UNAVAILABLE"
+  | "ASSIST_FAILED"
+  | "INTERNAL";
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   BAD_REQUEST: 400,
@@ -11,7 +22,11 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   SUSPENDED: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  /** A per-person daily cap on a helper (the chat limit itself is reported on the stream). */
+  LIMIT_REACHED: 429,
   UNAVAILABLE: 503,
+  /** The model answered, but not usably, or could not be reached. */
+  ASSIST_FAILED: 502,
   INTERNAL: 500,
 };
 

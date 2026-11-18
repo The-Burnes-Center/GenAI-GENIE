@@ -33,13 +33,13 @@ export const SEED_NOW_ISO = '2026-11-17T14:00:00.000Z'
 export function initialSettings(): Settings {
   return {
     appName: 'Genie',
-    welcomeTitle: 'Welcome to Genie',
-    welcomeMessage:
-      'Ask a question, draft a message, or work from your team’s documents. Your chats are saved to your history.',
+    // Same as the backend defaults: a question, and no message (the home screen supplies a one-line promise).
+    welcomeTitle: 'How can I help today?',
+    welcomeMessage: '',
     disclaimer: 'Genie can make mistakes. Check important facts before you share or act on them.',
-    defaultModelId: SONNET_ID,
+    defaultModelId: HAIKU_ID,
     titleModelId: HAIKU_ID,
-    dailyMessageLimit: 50,
+    dailyMessageLimit: 100,
     maxCompareModels: 3,
     signupMode: 'open',
     allowedEmailDomains: ['example.org', 'example.gov'],
@@ -47,6 +47,25 @@ export function initialSettings(): Settings {
     retrievalTopK: 8,
     timezone: 'America/New_York',
     templateCategories: ['Writing', 'Summaries', 'Planning', 'Communication', 'Policy', 'Translation'],
+    assistantInstructions: [
+      'You are Genie, an AI assistant for public servants at work. Many of the people using you are new to AI.',
+      '- Write in plain, everyday language with short sentences.',
+      '- Be honest about uncertainty. Never invent names, numbers, dates, quotes, laws or sources.',
+      '- Remind people to check names, numbers, dates and legal references against the original source.',
+    ].join('\n'),
+    dataRules: [
+      'Personal information about residents or coworkers, like Social Security numbers, case files, or health and financial records',
+      'Passwords, access codes or keys',
+      'Anything your agency marks confidential or would not share publicly',
+    ],
+    learnLinks: [
+      {
+        title: 'Responsible AI for Public Professionals',
+        url: 'https://innovate-us.org/course/responsible-ai-for-public-professionals',
+        description: 'A free InnovateUS course with hands-on activities on using generative AI at work and avoiding the risks.',
+      },
+    ],
+    helpContact: 'ai-help@example.org',
   }
 }
 
@@ -61,9 +80,9 @@ function model(
 
 export function initialModels(): ModelConfig[] {
   return [
-    model({ modelId: SONNET_ID, label: 'Claude Sonnet 5.5', provider: 'Anthropic', description: 'Balanced and careful. Good for most work.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 1 }),
-    model({ modelId: OPUS_ID, label: 'Claude Opus 5.5', provider: 'Anthropic', description: 'Most thorough. Best for hard, detailed tasks.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 2 }),
-    model({ modelId: HAIKU_ID, label: 'Claude Haiku 5.5', provider: 'Anthropic', description: 'Fastest. Good for quick questions.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 3 }),
+    model({ modelId: HAIKU_ID, label: 'Claude Haiku 5.5', provider: 'Anthropic', description: 'Fast and low cost. Good for everyday writing and questions. The default.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 1 }),
+    model({ modelId: SONNET_ID, label: 'Claude Sonnet 5.5', provider: 'Anthropic', description: 'Stronger on harder questions and long documents. Costs more than Haiku.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 2 }),
+    model({ modelId: OPUS_ID, label: 'Claude Opus 5.5', provider: 'Anthropic', description: 'Most capable, for the hardest problems. The highest cost Claude model.', capabilities: CLAUDE_CAPS, contextWindow: 1_000_000, maxOutputTokens: 128_000, sortOrder: 3 }),
     model({ modelId: GPT_ID, label: 'GPT-6.2 Sol', provider: 'OpenAI', description: 'Strong all-rounder for writing and analysis.', capabilities: { vision: false, documents: false, reasoning: false, temperature: false, promptCache: false }, contextWindow: 200_000, maxOutputTokens: 32_000, sortOrder: 4 }),
     model({ modelId: OSS_ID, label: 'gpt-oss 120B', provider: 'OpenAI', description: 'Open model. Quick, plain answers.', capabilities: { vision: false, documents: false, reasoning: false, temperature: true, promptCache: false }, contextWindow: 128_000, maxOutputTokens: 32_000, sortOrder: 5 }),
     model({ modelId: NOVA_PRO_ID, label: 'Nova Pro', provider: 'Amazon', description: 'Reads documents and images well.', capabilities: { vision: true, documents: true, reasoning: false, temperature: true, promptCache: true }, contextWindow: 300_000, maxOutputTokens: 10_000, sortOrder: 6 }),

@@ -11,7 +11,7 @@ export function AdminSettingsPage() {
 
   return (
     <>
-      <PageHead title="Settings" lead="What staff see, how much they can use, and who can sign up." />
+      <PageHead title="Settings" lead="What staff see, how much they can use, how Genie helps new users, and who can sign up." />
       {settings.isError && <QueryError what="settings" error={settings.error} onRetry={() => void settings.refetch()} />}
       {models.isError && <QueryError what="the model list" error={models.error} onRetry={() => void models.refetch()} />}
       {(settings.isPending || models.isPending) && !settings.isError && !models.isError && <SkeletonLines count={6} label="Loading settings" />}

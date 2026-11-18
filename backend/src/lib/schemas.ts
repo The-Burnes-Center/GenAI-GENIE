@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { badRequest } from "./http.js";
+import { HINT_IDS } from "./types.js";
 import { isValidTimezone } from "./tz.js";
 
 export const MAX_PROMPT_CHARS = 400_000;
 export const MAX_ATTACHMENTS = 25; // 5 documents + 20 images, checked by kind in converse.ts
+export const MAX_REWRITE_CHARS = 8000;
 
 const attachmentSchema = z.object({
   key: z.string().min(1).max(1024),
@@ -91,6 +93,23 @@ export const modelEntrySchema = z.object({
   sortOrder: z.number().int().default(100),
 });
 
+/** Only https links: a stored link must never be able to point at a javascript: or plain http: target. */
+function isHttpsUrl(value: string): boolean {
+  if (!/^https:\/\//i.test(value)) return false;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const learnLinkSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  url: z.string().trim().max(500).refine(isHttpsUrl, "Enter a full link that starts with https://"),
+  description: z.string().trim().max(200).optional(),
+});
+
 export const settingsSchema = z.object({
   appName: z.string().trim().min(1).max(60),
   welcomeTitle: z.string().trim().max(120),
@@ -106,6 +125,14 @@ export const settingsSchema = z.object({
   retrievalTopK: z.number().int().min(1).max(100),
   timezone: z.string().refine(isValidTimezone, "Enter an IANA time zone like America/New_York"),
   templateCategories: z.array(z.string().trim().min(1).max(40)).min(1).max(30),
+  assistantInstructions: z.string().trim().max(4000),
+  dataRules: z.array(z.string().trim().min(1).max(200)).max(10),
+  learnLinks: z.array(learnLinkSchema).max(8),
+  helpContact: z
+    .string()
+    .trim()
+    .max(200)
+    .refine((v) => v === "" || z.email().safeParse(v).success || isHttpsUrl(v), "Enter an email address or a link that starts with https://"),
 });
 
 export const templateSchema = z.object({
@@ -135,6 +162,16 @@ export function parseJsonBody<T extends z.ZodType>(schema: T, raw: string | unde
   }
   return parseWith(schema, value);
 }
+
+export const hintSchema = z.object({ hint: z.enum(HINT_IDS) });
+
+export const rewriteRequestSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, "Write the request you want help with first.")
+    .max(MAX_REWRITE_CHARS, "That request is too long to rewrite. Shorten it or attach it as a file."),
+});
 
 export const forkSessionSchema = z.object({ modelId: z.string().min(1).max(256) });
 export const reviewFeedbackSchema = z.object({ reviewed: z.boolean() });

@@ -30,7 +30,7 @@ const REFUSAL_REASONS = new Set(["guardrail_intervened", "content_filtered"]);
 export function buildRequest(p: Prepared, ctx: Context, history: Message[]): ConverseStreamCommandInput {
   const cache = p.model.capabilities.promptCache;
   const messages = buildConverseMessages({ history, prompt: p.req.prompt, attachments: ctx.attachments, historyAttachments: ctx.historyAttachments, cache });
-  const system = buildSystem(p.template, ctx.sources, cache);
+  const system = buildSystem(p.template, ctx.sources, cache, p.settings.assistantInstructions);
   const temperature = temperatureFor(p.model);
   const extra = thinkingFields(p.model, p.req.settings?.thinking);
   return {

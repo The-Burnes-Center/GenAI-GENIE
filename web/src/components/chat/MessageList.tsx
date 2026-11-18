@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { ModelConfig, Rating } from '../../api/types'
 import type { UiMessage } from '../../chat/messages'
 import { AssistantTurn } from './AssistantTurn'
@@ -12,10 +13,12 @@ interface MessageListProps {
   onRetry: (assistantId: string) => void
   onChooseModel: (assistantId: string) => void
   onFeedback: (assistantId: string, rating: Rating) => void
+  // Answer helpers, shown under the last answer.
+  lastTurnExtras?: ReactNode
 }
 
 // A reading column of turns. No bubbles for answers, no avatars. Retry shows on failed turns and the last answer.
-export function MessageList({ messages, sessionId, models, dailyLimit, isStreaming, onRetry, onChooseModel, onFeedback }: MessageListProps) {
+export function MessageList({ messages, sessionId, models, dailyLimit, isStreaming, onRetry, onChooseModel, onFeedback, lastTurnExtras }: MessageListProps) {
   if (messages.length === 0) return null
   const lastIndex = messages.length - 1
   return (
@@ -34,6 +37,7 @@ export function MessageList({ messages, sessionId, models, dailyLimit, isStreami
               onRetry={isStreaming || index !== lastIndex ? undefined : () => onRetry(message.id)}
               onChooseModel={() => onChooseModel(message.id)}
               onFeedback={(rating) => onFeedback(message.id, rating)}
+              extras={index === lastIndex ? lastTurnExtras : undefined}
             />
           )}
         </li>

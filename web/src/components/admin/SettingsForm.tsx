@@ -4,6 +4,7 @@ import { useSaveAdminSettings } from '../../api/admin-content'
 import type { ModelConfig, Settings } from '../../api/types'
 import { Button, InlineNotice, toast } from '../ui'
 import { CategoriesEditor } from './CategoriesEditor'
+import { SettingsHelpSection } from './SettingsHelpSection'
 import { SettingsLimitsSection } from './SettingsLimitsSection'
 import { SettingsSignupSection } from './SettingsSignupSection'
 import { SettingsWelcomeSection, WelcomePreview } from './SettingsWelcomeSection'
@@ -66,6 +67,7 @@ export function SettingsForm({ settings, models }: { settings: Settings; models:
         <div data-field="templateCategories">
           <CategoriesEditor value={draft.templateCategories} onChange={(next) => setField('templateCategories', next)} error={errors.templateCategories} />
         </div>
+        <SettingsHelpSection draft={draft} errors={errors} setField={setField} />
         <SettingsSignupSection draft={draft} errors={errors} setField={setField} />
       </div>
       <WelcomePreview draft={draft} />

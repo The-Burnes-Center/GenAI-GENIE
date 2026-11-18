@@ -12,6 +12,8 @@ interface AttachMenuProps {
   // Offered when images are off and a model that can see them exists.
   onSwitchModel?: () => void
   isDisabled?: boolean
+  // Called when the menu opens, so the Attach tip can retire.
+  onOpen?: () => void
 }
 
 const DOCUMENT_ACCEPT = acceptAttribute('attachment')
@@ -21,7 +23,7 @@ const DOCUMENT_ACCEPT = acceptAttribute('attachment')
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp'
 
 // A menu with two rows, each opening the system file picker. Dropping files anywhere on the chat does the same.
-export function AttachMenu({ canSeeImages, imageReason, onFiles, onSwitchModel, isDisabled }: AttachMenuProps) {
+export function AttachMenu({ canSeeImages, imageReason, onFiles, onSwitchModel, isDisabled, onOpen }: AttachMenuProps) {
   const documentInput = useRef<HTMLInputElement>(null)
   const imageInput = useRef<HTMLInputElement>(null)
 
@@ -32,7 +34,7 @@ export function AttachMenu({ canSeeImages, imageReason, onFiles, onSwitchModel, 
 
   return (
     <>
-      <MenuTrigger>
+      <MenuTrigger onOpenChange={(isOpen) => isOpen && onOpen?.()}>
         <Button variant="ghost" size="sm" isDisabled={isDisabled} className="gap-1.5! px-2! sm:px-2.5!" aria-label="Attach a file">
           <Paperclip size={20} aria-hidden="true" />
           <span className="max-sm:vh">Attach</span>
