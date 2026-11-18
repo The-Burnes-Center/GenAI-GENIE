@@ -39,7 +39,7 @@ export default function Playground() {
                     </p>
                     <h3>Multimodal chat</h3>
                     <p>
-                        If you select a multimodal model (like Anthropic Claude 3), you can
+                        If you select a multimodal model (like Claude or Amazon Nova), you can
                         upload images to use in the conversation.
                     </p>
                     <h3>Session history</h3>

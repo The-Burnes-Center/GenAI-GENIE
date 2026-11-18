@@ -8,7 +8,9 @@ from ..base import ModelAdapter
 from genai_core.registry import registry
 
 
-class BedrockClaudeAdapter(ModelAdapter):
+class BedrockConverseAdapter(ModelAdapter):
+    """Serves every Bedrock model through the Converse API (Claude, Nova, Llama, Mistral, ...)."""
+
     def __init__(self, model_id, *args, **kwargs):
         self.model_id = model_id
 
@@ -24,7 +26,6 @@ class BedrockClaudeAdapter(ModelAdapter):
         if "maxTokens" in model_kwargs:
             params["max_tokens"] = model_kwargs["maxTokens"]
 
-        params["anthropic_version"] = "bedrock-2023-05-31"
         return Bedrock(
             client=bedrock,
             model_id=self.model_id,
@@ -85,5 +86,8 @@ class BedrockClaudeAdapter(ModelAdapter):
         )
 
 
-# Register the adapter
-registry.register(r"^bedrock.anthropic.claude*", BedrockClaudeAdapter)
+# Register the generic Converse adapter for every Bedrock model except the Smart Model
+# router, which has its own adapter in metamodel.py
+registry.register(
+    r"^bedrock\.(?!meta_model_as_db_supersecret_id).*", BedrockConverseAdapter
+)

@@ -16,8 +16,11 @@ from typing import Dict, List, Any
 
 from genai_core.langchain import WorkspaceRetriever, DynamoDBChatMessageHistory
 from genai_core.types import ChatbotMode
+from genai_core.bedrock_converse import CLAUDE_REQUEST_FIELDS, get_text
 
 logger = Logger()
+
+ENHANCE_MODEL_ID = "us.anthropic.claude-haiku-5-5"
 
 
 class Mode(Enum):
@@ -116,42 +119,21 @@ class ModelAdapter:
 
         print('base_prompt', base_prompt)
 
-        # Call the LLM to get the enhanced prompt on Sonnet 3.5
+        # Call the LLM to get the enhanced prompt on Claude Haiku 5.5 through Converse
         bedrock = genai_core.clients.get_bedrock_client()
         try:
-            response = bedrock.invoke_model(
-                modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",  # Change for different model
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 50,  # SARAH - Testing here 100,
-                    "messages": [{"role": "user", "content": base_prompt}],
-                })
+            response = bedrock.converse(
+                modelId=ENHANCE_MODEL_ID,
+                messages=[{"role": "user", "content": [{"text": base_prompt}]}],
+                inferenceConfig={"maxTokens": 1024},
+                additionalModelRequestFields=CLAUDE_REQUEST_FIELDS,
             )
-            # Response from bedrock
-            result = json.loads(response.get("body").read())
-            print("Response from Bedrock:", result)
-
-            # Extract and print the enhanced prompt from the content list
-            content_list = result.get("content", [])
-            if content_list:
-                enhanced_prompt = content_list[0].get("text", "")
-
-                # # Ensure the enhanced prompt is a substring if the length is greater than 1000
-                # if len(enhanced_prompt) > 1000:
-                #     enhanced_prompt = enhanced_prompt[:980]
-
-                print("Enhanced Prompt Text:", enhanced_prompt)  # Print only the text from content
-                return enhanced_prompt
-
-            # # Extract and print the enhanced prompt from the content list
-            # content_list = result.get("content", [])
-            # if content_list:
-            #     enhanced_prompt = content_list[0].get("text", "")
-            #     print("Enhanced Prompt Text:", enhanced_prompt)  # Print only the text from content
-            #     return enhanced_prompt
-            else:
+            enhanced_prompt = get_text(response["output"]["message"]["content"])
+            if not enhanced_prompt:
                 print("No content found in the response.")
                 return None
+            print("Enhanced Prompt Text:", enhanced_prompt)
+            return enhanced_prompt
         except ClientError as err:
             logger.error(
                 f"Couldn't invoke prompt enhancement model. Error: {err.response['Error']['Code']}: {err.response['Error']['Message']}")

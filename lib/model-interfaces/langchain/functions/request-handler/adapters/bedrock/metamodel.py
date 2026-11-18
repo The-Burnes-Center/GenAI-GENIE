@@ -1,14 +1,22 @@
-import json
-from botocore.exceptions import ClientError
-from aws_lambda_powertools import Logger
 import genai_core.clients
 import os
+from botocore.exceptions import ClientError
+from aws_lambda_powertools import Logger
 
 from .base import Bedrock
 from ..base import ModelAdapter
 from genai_core.registry import registry
+from genai_core.models import CURATED_BEDROCK_MODELS
+from genai_core.bedrock_converse import build_converse_request, get_text
 
 logger = Logger()
+
+# The router only ever picks from the curated list, so it can never suggest a retired model
+MODEL_ID_BY_NAME = {model["name"]: model["modelId"] for model in CURATED_BEDROCK_MODELS}
+MODEL_NAMES = list(MODEL_ID_BY_NAME)
+DEFAULT_MODEL_NAME = "Claude Haiku 5.5"
+DEFAULT_MODEL_ID = MODEL_ID_BY_NAME[DEFAULT_MODEL_NAME]
+CSV_FILE_NAME = "Bedrock_LLM_Guide - Main.csv"
 
 
 class BedrockMetaModelAdapter(ModelAdapter):
@@ -16,8 +24,6 @@ class BedrockMetaModelAdapter(ModelAdapter):
                  model_kwargs={}, *args, **kwargs):
         # Initialize the model_id for this instance
         self.model_id = model_id
-        # A specific model identifier for a particular version of a model
-        self.BEDROCK_MODEL_ID_CLAUDE_3_5_Sonnet = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
         # Call the superclass constructor with all required and optional parameters
         super().__init__(session_id, user_id, model_kwargs=model_kwargs, *args, **kwargs)
@@ -25,17 +31,12 @@ class BedrockMetaModelAdapter(ModelAdapter):
     def get_llm(self, model_kwargs={}):
         bedrock = genai_core.clients.get_bedrock_client()
         params = {}
-        if "temperature" in model_kwargs:
-            params["temperature"] = 0.05
-        if "topP" in model_kwargs:
-            params["top_p"] = model_kwargs["topP"]
         if "maxTokens" in model_kwargs:
             params["max_tokens"] = model_kwargs["maxTokens"]
 
-        params["anthropic_version"] = "bedrock-2023-05-31"
         return Bedrock(
             client=bedrock,
-            model_id=self.BEDROCK_MODEL_ID_CLAUDE_3_5_Sonnet,
+            model_id=DEFAULT_MODEL_ID,
             model_kwargs=params,
             streaming=model_kwargs.get("streaming", False),
             callbacks=[self.callback_handler],
@@ -43,7 +44,7 @@ class BedrockMetaModelAdapter(ModelAdapter):
 
     def get_csv_data_as_text(self):
         directory = os.path.dirname(os.path.abspath(__file__))
-        filepath = os.path.join(directory, "Bedrock_LLM_Guide.csv")
+        filepath = os.path.join(directory, CSV_FILE_NAME)
         try:
             with open(filepath, "r") as file:
                 return file.read()
@@ -51,84 +52,49 @@ class BedrockMetaModelAdapter(ModelAdapter):
             logger.error(f"Error reading CSV data: {str(e)}")
             return None
 
+    model_id_data = MODEL_ID_BY_NAME
 
-    model_id_data = {
-        "Titan Text G1 - Express": "amazon.titan-text-express-v1",
-        "Titan Text G1 - Lite": "amazon.titan-text-lite-v1",
-        "Claude": "anthropic.claude-v2:1",
-        "Claude 3 Sonnet": "anthropic.claude-3-sonnet-20240229-v1:0",
-        "Claude 3.5 Sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        "Claude 3 Haiku": "anthropic.claude-3-haiku-20240307-v1:0",
-        "Claude Instant": "anthropic.claude-instant-v1",
-        "Jurassic-2 Mid": "ai21.j2-mid-v1",
-        "Jurassic-2 Ultra": "ai21.j2-ultra-v1",
-        "Command": "cohere.command-text-v14",
-        "Command Light": "cohere.command-light-text-v14",
-        "Llama 2 Chat 13B": "meta.llama2-13b-chat-v1",
-        "Llama 2 Chat 70B": "meta.llama2-70b-chat-v1",
-        "Llama 3 8B Instruct": "meta.llama3-8b-instruct-v1:0",
-        "Llama 3 70B Instruct": "meta.llama3-70b-instruct-v1:0",
-        "Mistral 7B Instruct": "mistral.mistral-7b-instruct-v0:2",
-        "Mixtral 8X7B Instruct": "mistral.mixtral-8x7b-instruct-v0:1",
-    }
+    def build_router_prompt(self, csv_data, user_prompt):
+        model_list = "\n".join(MODEL_NAMES)
+        return f"""Decision-Making Task with Model Name Consistency:
+
+Context: You are tasked with evaluating a dataset detailing various language models to determine the most suitable one for a specific user request. The dataset provides insights on model capabilities, use cases, and relative cost.
+
+Input Data:
+
+CSV Dataset: {csv_data}
+User Prompt: {user_prompt}
+
+Output Expectation: Respond with the exact model name from the list provided below, ensuring spelling accuracy. Your response should consist only of this model name, without additional commentary.
+
+List of Models for Consistency:
+{model_list}
+
+Procedure:
+
+Understand the User Prompt: Analyze the details of the user's request, including task requirements and any specific constraints.
+Evaluate Based on Criteria: Use the dataset to assess which model best aligns with the user's needs, considering factors like task complexity, language support, and relative cost. Prefer the lower cost models for simple requests. (for any language other than English, please use the Claude Sonnet 5.5 model)
+Make Your Decision: Identify the most appropriate model from the list above to handle the user's request, based on your analysis.
+Expected Output: Provide the selected model's name exactly as it appears in the list above. This ensures clarity and uniformity in the response, facilitating seamless further processing.
+
+Note: It is crucial to adhere to the requested output format, delivering only the name of the chosen model with exact spelling as listed, to maintain consistency across all responses."""
 
     def get_model_suggestion(self, user_prompt):
         csv_data = self.get_csv_data_as_text()
         if not csv_data:
             logger.error("Error reading CSV data.")
-            return self.BEDROCK_MODEL_ID_CLAUDE_3_5_Sonnet
+            return DEFAULT_MODEL_ID
 
-        base_prompt = f"""Decision-Making Task with Model Name Consistency:
-
-        Context: You are tasked with evaluating a dataset detailing various language models to determine the most suitable one for a specific user request. The dataset provides insights on model capabilities, use cases, and performance metrics.
-
-        Input Data:
-
-        CSV Dataset: {csv_data}
-        User Prompt: {user_prompt}
-
-        Output Expectation: Respond with the exact model name from the list provided below, ensuring spelling accuracy. Your response should consist only of this model name, without additional commentary.
-
-        List of Models for Consistency:
-        Titan Text G1 - Lite
-        Titan Text G1 - Express
-        Jurassic-2 Mid
-        Jurassic-2 Ultra
-        Claude Instant
-        Claude
-        Claude 3 Sonnet
-        Claude 3.5 Sonnet
-        Claude 3 Haiku
-        Command
-        Command Light
-        Llama 2 Chat 13B
-        Llama 2 Chat 70B
-        Llama 3 8B Instruct
-        Llama 3 70B Instruct
-        Mistral 7B Instruct
-        Mixtral 8x7B Instruct
-
-        Procedure:
-
-        Understand the User Prompt: Analyze the details of the user's request, including task requirements and any specific constraints.
-        Evaluate Based on Criteria: Use the dataset to assess which model best aligns with the user's needs, considering factors like task complexity, language support, performance metrics, and cost. (for any language other than English, please use the Claude 3 Sonnet model)
-        Make Your Decision: Identify the most appropriate model from the list above to handle the user's request, based on your analysis.
-        Expected Output: Provide the selected model's name exactly as it appears in the list above. This ensures clarity and uniformity in the response, facilitating seamless further processing.
-
-        Note: It is crucial to adhere to the requested output format, delivering only the name of the chosen model with exact spelling as listed, to maintain consistency across all responses."""
+        base_prompt = self.build_router_prompt(csv_data, user_prompt)
 
         bedrock = genai_core.clients.get_bedrock_client()
         try:
-            response = bedrock.invoke_model(
-                modelId=self.BEDROCK_MODEL_ID_CLAUDE_3_5_Sonnet,
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 1024,
-                    "messages": [{"role": "user", "content": base_prompt}],
-                })
+            response = bedrock.converse(
+                messages=[{"role": "user", "content": [{"text": base_prompt}]}],
+                **build_converse_request(DEFAULT_MODEL_ID, max_tokens=1024),
+                modelId=DEFAULT_MODEL_ID,
             )
-            result = json.loads(response.get("body").read())
-            model_name = result.get("content", [{}])[0].get("text", "")
+            model_name = get_text(response["output"]["message"]["content"])
             return self.model_id_data.get(self.check_model_and_return(model_name))
         except ClientError as err:
             logger.error(
@@ -136,15 +102,13 @@ class BedrockMetaModelAdapter(ModelAdapter):
             return None
 
     def check_model_and_return(self, model_name):
-        valid_models = [
-            "Titan Text G1 - Lite", "Titan Text G1 - Express", "Jurassic-2 Mid", "Jurassic-2 Ultra",
-            "Claude Instant", "Claude", "Claude 3 Sonnet", "Cloude 3.5 Sonnet", "Claude 3 Haiku",
-            "Command", "Command Light", "Llama 2 Chat 13B", "Llama 2 Chat 70B", "Llama 3 8B Instruct", "Llama 3 70B Instruct",
-            "Mistral 7B Instruct", "Mixtral 8x7B Instruct"
-        ]
-        return model_name if model_name in valid_models else "Claude 3.5 Sonnet"
-
-
+        # Tolerate stray whitespace, quotes, backticks, or a trailing period from the router
+        cleaned = model_name.strip().strip("\"'`*.").strip().lower()
+        for name in MODEL_NAMES:
+            if name.lower() == cleaned:
+                return name
+        logger.warning(f"Router returned an unknown model name: {model_name!r}")
+        return DEFAULT_MODEL_NAME
 
 
 # Register the adapter

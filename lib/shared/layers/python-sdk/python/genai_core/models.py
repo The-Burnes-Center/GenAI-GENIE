@@ -4,13 +4,46 @@ import genai_core.parameters
 
 from genai_core.types import Modality, Provider, ModelInterface
 
+
+def _bedrock_model(model_id, name, input_modalities):
+    return {
+        "provider": Provider.BEDROCK.value,
+        "modelId": model_id,
+        "name": name,
+        "streaming": True,
+        "inputModalities": input_modalities,
+        "outputModalities": [Modality.TEXT.value],
+        "interface": ModelInterface.LANGCHIAN.value,
+        "ragSupported": True,
+    }
+
+
+# Bedrock models offered in the UI. Every entry is called through the Converse
+# API by the langchain adapter. The UI matches models by name, so names must be unique.
+TEXT = [Modality.TEXT.value]
+TEXT_AND_IMAGE = [Modality.TEXT.value, Modality.IMAGE.value]
+
+CURATED_BEDROCK_MODELS = [
+    _bedrock_model("us.anthropic.claude-haiku-5-5", "Claude Haiku 5.5", TEXT_AND_IMAGE),
+    _bedrock_model("us.anthropic.claude-sonnet-5-5", "Claude Sonnet 5.5", TEXT_AND_IMAGE),
+    _bedrock_model("us.anthropic.claude-opus-5-5", "Claude Opus 5.5", TEXT_AND_IMAGE),
+    _bedrock_model("us.amazon.nova-2-lite-v1:0", "Nova 2 Lite", TEXT_AND_IMAGE),
+    _bedrock_model("us.amazon.nova-pro-v1:0", "Nova Pro", TEXT_AND_IMAGE),
+    _bedrock_model("us.meta.llama4-maverick-17b-instruct-v1:0", "Llama 4 Maverick", TEXT),
+    _bedrock_model("mistral.mistral-large-3-675b-instruct", "Mistral Large 3", TEXT),
+    _bedrock_model("openai.gpt-oss-120b-1:0", "gpt-oss 120B", TEXT),
+    _bedrock_model("deepseek.v3.2", "DeepSeek V3.2", TEXT),
+    _bedrock_model("qwen.qwen3-next-80b-a3b", "Qwen3 Next 80B", TEXT),
+    _bedrock_model("global.openai.gpt-6.2-sol", "GPT-6.2 Sol", TEXT),
+    _bedrock_model("global.xai.grok-4.7", "Grok 4.7", TEXT),
+]
+
+
 # Original list_models function with slight modifications
 def list_models():
     models = []
 
-    bedrock_models = list_new_bedrock_models()
-    if bedrock_models:
-        models.extend(bedrock_models)
+    models.extend(dict(model) for model in CURATED_BEDROCK_MODELS)
 
     # Adding a meta model directly as a dictionary
     meta_model = {
@@ -27,60 +60,3 @@ def list_models():
     models.append(meta_model)
 
     return models
-
-# Revised list_new_bedrock_models function with simplified model filtering
-def list_new_bedrock_models():
-    try:
-        bedrock = genai_core.clients.get_bedrock_client(service_name="bedrock")
-        if not bedrock:
-            return []
-
-        response = bedrock.list_foundation_models(
-            byInferenceType=genai_core.types.InferenceType.ON_DEMAND.value,
-            byOutputModality=genai_core.types.Modality.TEXT.value,
-        )
-
-        # skip_model_ids = [
-        #     'amazon.titan-tg1-large',
-        #     'ai21.j2-grande-instruct',
-        #     'ai21.j2-jumbo-instruct',
-        #     'ai21.j2-mid',
-        #     'ai21.j2-ultra',
-        #     'anthropic.claude-v2'
-        # ]
-
-        model_id = [
-             "amazon.titan-text-express-v1",
-             "amazon.titan-text-lite-v1",
-             "anthropic.claude-v2:1",
-             "anthropic.claude-3-sonnet-20240229-v1:0",
-             "anthropic.claude-3-5-sonnet-20240620-v1:0",
-             "anthropic.claude-3-haiku-20240307-v1:0",
-             "anthropic.claude-instant-v1",
-             "ai21.j2-mid-v1",
-             "ai21.j2-ultra-v1",
-             "cohere.command-text-v14",
-             "cohere.command-light-text-v14",
-             "meta.llama2-13b-chat-v1",
-             "meta.llama2-70b-chat-v1",
-             "meta.llama3-8b-instruct-v1:0",
-             "meta.llama3-70b-instruct-v1:0",
-             "mistral.mistral-7b-instruct-v0:2",
-             "mistral.mixtral-8x7b-instruct-v0:1",
-        ]
-
-        models = [{
-            "provider": Provider.BEDROCK.value,
-            "modelId": model["modelId"],
-            "name": model.get("modelName", ""),
-            "streaming": model.get("responseStreamingSupported", False),
-            "inputModalities": model.get("inputModalities", []),
-            "outputModalities": model.get("outputModalities", []),
-            "interface": ModelInterface.LANGCHIAN.value,
-            "ragSupported": True,
-        } for model in response.get('modelSummaries', []) if model.get('modelId') in model_id and model.get('modelLifecycle', {}).get('status') == genai_core.types.ModelStatus.ACTIVE.value]
-
-        return models
-    except Exception as e:
-        print(f"Error listing Bedrock models: {e}")
-        return []

@@ -818,21 +818,8 @@ function getSelectedModelOption(models: Model[], defaultModel:string = ''): Sele
     const sageMakerModels = models.filter((m) => m.provider === "sagemaker");
     const openAIModels = models.filter((m) => m.provider === "openai");
 
-    candidate = bedrockModels.find((m) => m.name === "anthropic.claude-v2");
-    if (!candidate) {
-      candidate = bedrockModels.find((m) => m.name === "anthropic.claude-v1");
-    }
-
-    // CHANGE IN HERE FOR DEFAULT TO BE SMART MODEL 
-    if (!candidate) {
-      candidate = bedrockModels.find(
-        (m) => m.name === "amazon.titan-tg1-large"
-      );
-    }
-
-    if (!candidate) {
-      candidate = bedrockModels.find((m) => m.name.startsWith("amazon.titan-"));
-    }
+    // Fallback when the Smart Model is unavailable: the low-cost Claude model
+    candidate = bedrockModels.find((m) => m.name === "Claude Haiku 5.5");
 
     if (!candidate && sageMakerModels.length > 0) {
       candidate = sageMakerModels[0];

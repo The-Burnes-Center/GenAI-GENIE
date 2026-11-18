@@ -3,9 +3,8 @@ import json
 import uuid
 from datetime import datetime
 from urllib.parse import urljoin
-from adapters import Idefics, Claude3
+from adapters import Idefics
 
-from adapters import MetaModelAdapter
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType
 from aws_lambda_powertools.utilities.batch.exceptions import BatchProcessingError
@@ -22,6 +21,8 @@ from genai_core.registry import registry
 from content_handler import ContentHandler
 
 processor = BatchProcessor(event_type=EventType.SQS)
+META_MODEL_ID = "meta_model_as_db_supersecret_id"
+BEDROCK_MODEL_ID_FALLBACK = "us.anthropic.claude-haiku-5-5"
 tracer = Tracer()
 logger = Logger()
 
@@ -53,17 +54,10 @@ def handle_run(record):
 
     messages = chat_history.messages
 
-    BEDROCK_MODEL_ID_CLAUDE_3_Sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
-
-    if model_id == "meta_model_as_db_supersecret_id":
-        meta_model_adapter = registry.get_adapter(f"{provider}.{model_id}")
-        model_suggestion = meta_model_adapter.get_model_suggestion(prompt) # returns a model id
-        if model_suggestion:
-            logger.info(f"Meta model suggested: {model_suggestion}")
-            model_id = model_suggestion  # Update model_id with the suggested model
-        else:
-            logger.error("Meta model failed to suggest a suitable model.")
-            model_id = BEDROCK_MODEL_ID_CLAUDE_3_Sonnet
+    if model_id == META_MODEL_ID:
+        # The Smart Model router only lives in the langchain interface, so image chats use Haiku
+        logger.info("Smart Model is not available for image chats, using Claude Haiku 5.5")
+        model_id = BEDROCK_MODEL_ID_FALLBACK
 
     adapter = registry.get_adapter(f"{provider}.{model_id}")
 
@@ -76,7 +70,6 @@ def handle_run(record):
     )
 
     mlm_response = model.handle_run(prompt=prompt_template, model_kwargs=model_kwargs)
-    console.log('adapter.user_prompt', adapter.user_prompt)
     metadata = {
         "provider": provider,
         "modelId": model_id,
@@ -85,11 +78,10 @@ def handle_run(record):
         "sessionId": session_id,
         "userId": user_id,
         "prompts": [model.clean_prompt(prompt_template)],
-        "original_prompt": adapter.user_prompt,
+        "original_prompt": prompt,
     }
     if files:
         metadata["files"] = files
-    console.log('orig prompt', prompt)
     chat_history.add_user_message(prompt)
     chat_history.add_metadata(metadata)
     chat_history.add_ai_message(mlm_response)

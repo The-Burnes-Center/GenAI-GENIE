@@ -50,7 +50,7 @@ export default function TaskChat(props: {sessionId?: string, prompt?: string, ta
     () => ({
       streaming: true,
       showMetadata: false,
-      maxTokens: 512,
+      maxTokens: 2048,
       temperature: 0.1,
       topP: 0.9,
       files: null,

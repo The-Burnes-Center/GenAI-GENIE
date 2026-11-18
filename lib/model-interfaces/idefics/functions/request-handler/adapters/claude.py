@@ -1,31 +1,57 @@
-from .base import MultiModalModelBase
-from genai_core.types import ChatbotAction, ChatbotMessageType
-from urllib.parse import urljoin
-import os
-from genai_core.clients import get_bedrock_client
 import json
-import requests
-from base64 import b64encode
+import os
+
+import boto3
+
+from .base import MultiModalModelBase
+from genai_core.types import ChatbotMessageType
+from genai_core.clients import get_bedrock_client
+from genai_core.bedrock_converse import build_converse_request, get_text
 from genai_core.registry import registry
 
-
-def get_image_message(
-    file: dict,
-):
-    img = requests.get(
-        f"{urljoin(os.environ['CHATBOT_FILES_PRIVATE_API'], file['key'])}"
-    ).content
-    return {
-        "type": "image",
-        "source": {
-            "type": "base64",
-            "media_type": "image/jpeg",
-            "data": str(b64encode(img), "ascii"),
-        },
-    }
+IMAGE_FORMATS = {"png": "png", "jpeg": "jpeg", "jpg": "jpeg", "gif": "gif", "webp": "webp"}
+DEFAULT_IMAGE_FORMAT = "jpeg"
 
 
-class Claude3(MultiModalModelBase):
+def get_image_format(key: str) -> str:
+    extension = key.rsplit(".", 1)[-1].lower() if "." in key else ""
+    return IMAGE_FORMATS.get(extension, DEFAULT_IMAGE_FORMAT)
+
+
+def get_image_bytes(key: str) -> bytes:
+    s3 = boto3.client("s3")
+    response = s3.get_object(
+        Bucket=os.environ["CHATBOT_FILES_BUCKET_NAME"], Key=f"public/{key}"
+    )
+    return response["Body"].read()
+
+
+def get_image_block(file: dict) -> dict:
+    # Only the key is stored in the prompt so it stays JSON-safe and small for chat history
+    key = file["key"]
+    return {"image": {"key": key, "format": get_image_format(key)}}
+
+
+def add_turn(turns: list, role: str, content: list):
+    """Append content to the turns, merging consecutive turns of the same role.
+
+    Converse requires alternating roles that start with a user turn, and blank text blocks
+    are rejected, so both are handled here.
+    """
+    content = [block for block in content if "image" in block or block["text"].strip()]
+    if not content:
+        return
+    if not turns and role != "user":
+        return
+    if turns and turns[-1]["role"] == role:
+        turns[-1]["content"].extend(content)
+    else:
+        turns.append({"role": role, "content": content})
+
+
+class ConverseMultiModal(MultiModalModelBase):
+    """Multimodal chat through the Converse API for Claude and Nova models."""
+
     model_id: str
     client: any
 
@@ -34,71 +60,58 @@ class Claude3(MultiModalModelBase):
         self.client = get_bedrock_client()
 
     def format_prompt(self, prompt: str, messages: list, files: list) -> str:
-        prompts = []
+        turns = []
 
         # Chat history
         for message in messages:
             if message.type.lower() == ChatbotMessageType.Human.value.lower():
-                user_msg = {
-                    "role": "user",
-                    "content": [{"type": "text", "text": message.content}],
-                }
-                prompts.append(user_msg)
                 message_files = message.additional_kwargs.get("files", [])
-                for message_file in message_files:
-                    user_msg["content"].append(get_image_message(message_file))
+                content = [{"text": message.content}]
+                content += [get_image_block(f) for f in message_files]
+                add_turn(turns, "user", content)
             if message.type.lower() == ChatbotMessageType.AI.value.lower():
-                prompts.append({"role": "assistant", "content": message.content})
+                add_turn(turns, "assistant", [{"text": message.content}])
 
         # User prompt
-        user_msg = {
-            "role": "user",
-            "content": [{"type": "text", "text": prompt}],
-        }
-        prompts.append(user_msg)
-        for file in files:
-            user_msg["content"].append(get_image_message(file))
+        content = [{"text": prompt}] + [get_image_block(f) for f in files]
+        add_turn(turns, "user", content)
 
-        return json.dumps(
-            {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 512,
-                "messages": prompts,
-                "temperature": 0.3,
+        return json.dumps({"messages": turns})
+
+    def to_converse_block(self, block: dict) -> dict:
+        if "image" not in block:
+            return block
+        key = block["image"]["key"]
+        return {
+            "image": {
+                "format": block["image"]["format"],
+                "source": {"bytes": get_image_bytes(key)},
             }
-        )
+        }
 
-    def handle_run(self, prompt: str, model_kwargs: dict):
+    def handle_run(self, prompt: str, model_kwargs: dict) -> str:
         print(model_kwargs)
-        body = json.loads(prompt)
+        messages = [
+            {
+                "role": turn["role"],
+                "content": [self.to_converse_block(block) for block in turn["content"]],
+            }
+            for turn in json.loads(prompt)["messages"]
+        ]
 
-        if "temperature" in model_kwargs:
-            body["temperature"] = model_kwargs["temperature"]
-        if "topP" in model_kwargs:
-            body["top_p"] = model_kwargs["topP"]
-        if "maxTokens" in model_kwargs:
-            body["max_tokens"] = model_kwargs["maxTokens"]
-        if "topK" in model_kwargs:
-            body["top_k"] = model_kwargs["topK"]
-
-        body_str = json.dumps(body)
-        mlm_response = self.client.invoke_model(
-            modelId=self.model_id,
-            body=body_str,
-            accept="application/json",
-            contentType="application/json",
+        request = build_converse_request(
+            self.model_id,
+            max_tokens=model_kwargs.get("maxTokens"),
+            temperature=model_kwargs.get("temperature"),
+            top_p=model_kwargs.get("topP"),
+        )
+        response = self.client.converse(
+            modelId=self.model_id, messages=messages, **request
         )
 
-        return json.loads(mlm_response["body"].read())["content"][0]["text"]
-
-    def clean_prompt(self, prompt: str) -> str:
-        p = json.loads(prompt)
-        for m in p["messages"]:
-            if m["role"] == "user" and type(m["content"]) == type([]):
-                for c in m["content"]:
-                    if c["type"] == "image":
-                        c["source"]["data"] = ""
-        return json.dumps(p)
+        return get_text(response["output"]["message"]["content"])
 
 
-registry.register(r"^bedrock.anthropic.claude-3.*", Claude3)
+registry.register(
+    r"^bedrock\.((us|global)\.)?(anthropic\.claude|amazon\.nova)", ConverseMultiModal
+)

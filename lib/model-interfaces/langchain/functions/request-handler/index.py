@@ -80,7 +80,7 @@ def handle_run(record):
     if not session_id:
         session_id = str(uuid.uuid4())
 
-    BEDROCK_MODEL_ID_CLAUDE_3_Sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
+    BEDROCK_MODEL_ID_FALLBACK = "us.anthropic.claude-haiku-5-5"
 
     if model_id == "meta_model_as_db_supersecret_id":
         meta_model_adapter = BedrockMetaModelAdapter(session_id=session_id, user_id=user_id, model_id="meta_model_as_db_supersecret_id")
@@ -90,7 +90,7 @@ def handle_run(record):
             model_id = model_suggestion  # Update model_id with the suggested model
         else:
             logger.error("Meta model failed to suggest a suitable model.")
-            model_id = BEDROCK_MODEL_ID_CLAUDE_3_Sonnet
+            model_id = BEDROCK_MODEL_ID_FALLBACK
 
     adapter = registry.get_adapter(f"{provider}.{model_id}")
 

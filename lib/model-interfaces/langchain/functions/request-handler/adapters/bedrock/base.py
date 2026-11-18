@@ -1,5 +1,3 @@
-import json
-import warnings
 from abc import ABC
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
@@ -8,87 +6,16 @@ from langchain.llms.base import LLM
 from langchain.llms.utils import enforce_stop_tokens
 from langchain.pydantic_v1 import BaseModel, Extra, root_validator
 from langchain.schema.output import GenerationChunk
-from langchain.utilities.anthropic import (
-    get_num_tokens_anthropic,
-    get_token_ids_anthropic,
+
+from genai_core.bedrock_converse import (
+    build_converse_request,
+    get_stream_text,
+    get_text,
 )
 
 
-class LLMInputOutputAdapter:
-    """Adapter class to prepare the inputs from Langchain to a format
-    that LLM model expects.
-
-    It also provides helper function to extract
-    the generated text from the model response."""
-
-    @classmethod
-    def prepare_input(
-        cls, provider: str, prompt: str, model_kwargs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        input_body = {**model_kwargs}
-        if provider == "anthropic":
-            input_body["messages"] = [{"role": "user", "content": prompt}]
-        elif provider == "meta":
-            input_body["prompt"] = prompt
-        elif provider == "mistral":
-            input_body["prompt"] = prompt
-
-        if provider == "anthropic" and "max_tokens" not in input_body:
-            input_body["max_tokens"] = 256
-
-        return input_body
-
-    @classmethod
-    def prepare_output(cls, provider: str, response: Any) -> str:
-        response_body = json.loads(response.get("body").read())
-        if provider == "anthropic":
-            return response_body.get("content")[0]["text"]
-        elif provider == "meta":
-            return response_body.get("generation")
-        elif provider == "mistral":
-            return response_body.get("outputs")[0]["text"]
-        else:
-            raise Exception(f"provider {provider} not supported")
-
-    @classmethod
-    def prepare_output_stream(
-        cls, provider: str, response: Any, stop: Optional[List[str]] = None
-    ) -> Iterator[GenerationChunk]:
-        stream = response.get("body")
-
-        if not stream:
-            return
-
-        if provider not in ["anthropic", "meta", "mistral"]:
-            raise ValueError(
-                f"Unknown streaming response output key for provider: {provider}"
-            )
-
-        for event in stream:
-            chunk = event.get("chunk")
-            if chunk:
-                chunk_obj = json.loads(chunk.get("bytes").decode())
-
-                if provider == "anthropic":
-                    if chunk_obj.get("type") == "content_block_delta":
-                        yield GenerationChunk(
-                            text=chunk_obj.get("delta", {}).get("text", "")
-                        )
-                elif provider == "mistral":
-                    yield GenerationChunk(
-                        text=chunk_obj.get("outputs", [{}])[0].get("text", "")
-                    )
-                elif provider == "meta":
-                    yield GenerationChunk(text=chunk_obj["generation"])
-
-                else:
-                    raise ValueError(
-                        f"Unknown streaming response output key for provider: {provider}"
-                    )
-
-
 class BedrockBase(BaseModel, ABC):
-    """Base class for Bedrock models."""
+    """Base class for Bedrock models. All models are called through the Converse API."""
 
     client: Any  #: :meta private:
 
@@ -106,21 +33,17 @@ class BedrockBase(BaseModel, ABC):
     """
 
     model_id: str
-    """Id of the model to call, e.g., amazon.titan-text-express-v1, this is
-    equivalent to the modelId property in the list-foundation-models api"""
+    """Id of the model to call, e.g., us.anthropic.claude-haiku-5-5. Must be a model id
+    or cross-region inference profile id that the Converse API accepts."""
 
     model_kwargs: Optional[Dict] = None
-    """Keyword arguments to pass to the model."""
+    """Keyword arguments to pass to the model: max_tokens, temperature, top_p."""
 
     endpoint_url: Optional[str] = None
     """Needed if you don't want to default to us-east-1 endpoint"""
 
     streaming: bool = False
     """Whether to stream the results."""
-
-    provider_stop_sequence_key_name_map: Mapping[str, str] = {
-        "anthropic": "stop_sequences",
-    }
 
     @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
@@ -169,12 +92,25 @@ class BedrockBase(BaseModel, ABC):
             **{"model_kwargs": _model_kwargs},
         }
 
-    def _get_provider(self) -> str:
-        return self.model_id.split(".")[0]
-
-    @property
-    def _model_is_anthropic(self) -> bool:
-        return self._get_provider() == "anthropic"
+    def _build_request(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        params = {**(self.model_kwargs or {}), **kwargs}
+        request = build_converse_request(
+            self.model_id,
+            max_tokens=params.get("max_tokens"),
+            temperature=params.get("temperature"),
+            top_p=params.get("top_p"),
+            stop_sequences=stop,
+        )
+        return {
+            "modelId": self.model_id,
+            "messages": [{"role": "user", "content": [{"text": prompt}]}],
+            **request,
+        }
 
     def _prepare_input_and_invoke(
         self,
@@ -183,22 +119,13 @@ class BedrockBase(BaseModel, ABC):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
-        _model_kwargs = self.model_kwargs or {}
-
-        provider = self._get_provider()
-        params = {**_model_kwargs, **kwargs}
-        input_body = LLMInputOutputAdapter.prepare_input(provider, prompt, params)
-        body = json.dumps(input_body)
-        accept = "application/json"
-        contentType = "application/json"
+        request = self._build_request(prompt, stop, **kwargs)
         try:
-            response = self.client.invoke_model(
-                body=body, modelId=self.model_id, accept=accept, contentType=contentType
-            )
-            text = LLMInputOutputAdapter.prepare_output(provider, response)
-
+            response = self.client.converse(**request)
         except Exception as e:
             raise ValueError(f"Error raised by bedrock service: {e}")
+
+        text = get_text(response["output"]["message"]["content"])
 
         if stop is not None:
             text = enforce_stop_tokens(text, stop)
@@ -212,38 +139,18 @@ class BedrockBase(BaseModel, ABC):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> Iterator[GenerationChunk]:
-        _model_kwargs = self.model_kwargs or {}
-        provider = self._get_provider()
-
-        if stop:
-            if provider not in self.provider_stop_sequence_key_name_map:
-                raise ValueError(
-                    f"Stop sequence key name for {provider} is not supported."
-                )
-
-            # stop sequence from _generate() overrides
-            # stop sequences in the class attribute
-            _model_kwargs[self.provider_stop_sequence_key_name_map.get(provider)] = stop
-
-        if provider == "cohere":
-            _model_kwargs["stream"] = True
-
-        params = {**_model_kwargs, **kwargs}
-        input_body = LLMInputOutputAdapter.prepare_input(provider, prompt, params)
-        body = json.dumps(input_body)
+        request = self._build_request(prompt, stop, **kwargs)
         try:
-            response = self.client.invoke_model_with_response_stream(
-                body=body,
-                modelId=self.model_id,
-                accept="application/json",
-                contentType="application/json",
-            )
+            response = self.client.converse_stream(**request)
         except Exception as e:
             raise ValueError(f"Error raised by bedrock service: {e}")
 
-        for chunk in LLMInputOutputAdapter.prepare_output_stream(
-            provider, response, stop
-        ):
+        for event in response["stream"]:
+            text = get_stream_text(event)
+            if not text:
+                # reasoning deltas and other stream events carry no answer text
+                continue
+            chunk = GenerationChunk(text=text)
             yield chunk
             if run_manager is not None:
                 run_manager.on_llm_new_token(chunk.text, chunk=chunk)
@@ -271,7 +178,7 @@ class Bedrock(LLM, BedrockBase):
 
             llm = BedrockLLM(
                 credentials_profile_name="default",
-                model_id="amazon.titan-text-express-v1",
+                model_id="us.anthropic.claude-haiku-5-5",
                 streaming=True
             )
 
@@ -345,15 +252,3 @@ class Bedrock(LLM, BedrockBase):
             return completion
 
         return self._prepare_input_and_invoke(prompt=prompt, stop=stop, **kwargs)
-
-    def get_num_tokens(self, text: str) -> int:
-        if self._model_is_anthropic:
-            return get_num_tokens_anthropic(text)
-        else:
-            return super().get_num_tokens(text)
-
-    def get_token_ids(self, text: str) -> List[int]:
-        if self._model_is_anthropic:
-            return get_token_ids_anthropic(text)
-        else:
-            return super().get_token_ids(text)
