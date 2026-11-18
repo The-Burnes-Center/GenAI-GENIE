@@ -39,6 +39,7 @@ class Provider(Enum):
 class Modality(Enum):
     TEXT = "TEXT"
     IMAGE = "IMAGE"
+    DOCUMENT = "DOCUMENT"
     EMBEDDING = "EMBEDDING"
 
 

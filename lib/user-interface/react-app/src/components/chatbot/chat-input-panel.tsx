@@ -1,5 +1,6 @@
 import {
   Alert,
+  Box,
   Button,
   Container,
   Icon,
@@ -8,6 +9,7 @@ import {
   SpaceBetween,
   Spinner,
   StatusIndicator,
+  TokenGroup,
 } from "@cloudscape-design/components";
 import {
   Dispatch,
@@ -29,14 +31,14 @@ import { AppContext } from "../../common/app-context";
 import { OptionsHelper } from "../../common/helpers/options-helper";
 import { StorageHelper } from "../../common/helpers/storage-helper";
 import { API } from "aws-amplify";
-import { GraphQLSubscription, GraphQLResult, graphqlOperation } from "@aws-amplify/api";
-import { listWorkspaces } from "../../graphql/queries";
-import { ListWorkspacesQuery, ListWorkspacesQueryVariables } from "../../API";
+import { GraphQLSubscription, GraphQLResult } from "@aws-amplify/api";
 import { Model, ReceiveMessagesSubscription, Workspace } from "../../API";
 import { LoadingStatus, ModelInterface } from "../../common/types";
 import styles from "../../styles/chat.module.scss";
 import ConfigDialog from "./config-dialog";
 import ImageDialog from "./image-dialog";
+import DocumentDialog from "./document-dialog";
+import { isDocumentFile } from "./documents";
 import {
   ChabotInputModality,
   ChatBotHeartbeatRequest,
@@ -108,6 +110,7 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
   });
   const [configDialogVisible, setConfigDialogVisible] = useState(false);
   const [imageDialogVisible, setImageDialogVisible] = useState(false);
+  const [documentDialogVisible, setDocumentDialogVisible] = useState(false);
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [readyState, setReadyState] = useState<ReadyState>(
     ReadyState.UNINSTANTIATED
@@ -115,13 +118,9 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
   const firstTimeRef = useRef<boolean>(false);
   const messageHistoryRef = useRef<ChatBotHistoryItem[]>([]);
  // SARAH workspaces
- const [workspaceCount, setWorkspaceCount] = useState(1); // Track workspace count
- const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
  const [globalError, setGlobalError] = useState<string | undefined>(undefined);
- const [navigatedToWorkspace, setNavigatedToWorkspace] = useState(false); // Track navigation to new workspace
- const [newWorkspace, setNewWorkspace] = useState<Workspace | null>(null); // Track the newly created workspace
 
  useEffect(() => {
    if (!appContext) return;
@@ -172,78 +171,6 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
      }
    })();
  }, [appContext]);
-// Function to check if a workspace exists in Kendra
-const checkWorkspaceExists = async (name: string): Promise<boolean> => {
-  try {
-    const username = await Auth.currentAuthenticatedUser().then((user) => user.username);
-    const variables: ListWorkspacesQueryVariables = { username };
-    const result = await API.graphql(graphqlOperation(listWorkspaces, variables)) as { data: ListWorkspacesQuery };
-    if (result.data?.listWorkspaces) {
-      return result.data.listWorkspaces.some(workspace => workspace.name === name);
-    } else {
-      console.error('No workspaces found');
-      return false;
-    }
-  } catch (error) {
-    console.error('Error checking workspace existence:', error);
-    return false;
-  }
-};
- // Function to create a unique workspace name
- const createUniqueWorkspaceName = async (baseName: string, workspaces: Workspace[]): Promise<string> => {
-   let count = 0;
-   let uniqueName = `${baseName}-${count}`;
-   while (await checkWorkspaceExists(uniqueName)) {
-     count++;
-     uniqueName = `${baseName}-${count}`;
-   }
-   return uniqueName;
- };
- // SARAH doc upload
- const handleUploadDocument = async () => {
-   if (!appContext) return;
-   const apiClient = new ApiClient(appContext);
-   try {
-     const username = await Auth.currentAuthenticatedUser().then((user) => user.username);
-     // Create a unique workspace name
-     const baseName = `doc-upload`;
-     const uniqueWorkspaceName = await createUniqueWorkspaceName(baseName, workspaces);
-     // Create the workspace
-     const result = await apiClient.workspaces.createKendraWorkspace({
-       name: uniqueWorkspaceName,
-       kendraIndexId: "<KENDRA_INDEX_ID>", // SARAH HARDCODED NOW 
-       useAllData: true, 
-       createdBy: username,
-     });
-     
-     // Extract the workspace ID from the result
-     const workspaceId = result.data?.createKendraWorkspace?.id;
-     if (workspaceId) {
-      
-      // Update the workspace count and state
-      setWorkspaceCount(workspaceCount + 1);
-      const newWorkspace = { id: workspaceId, name: uniqueWorkspaceName, __typename: "Workspace", engine: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      setWorkspaces([...workspaces, { ...newWorkspace, __typename: "Workspace" }]);
-      setNewWorkspace({ ...newWorkspace, __typename: "Workspace" }); // Set the newly created workspace
-       
-      // Navigate to the newly created workspace
-       navigate(`/rag/workspaces/${workspaceId}`);
-       console.log('Navigated to the new workspace');
-       setNavigatedToWorkspace(true); // Set the state to indicate navigation
-     } else {
-       console.error('Workspace ID not found in the result');
-     }
-     
-     // Update the workspace count and state
-     setWorkspaceCount(workspaceCount + 1);
-     setWorkspaces([...workspaces, { id: workspaceId, name: uniqueWorkspaceName, __typename: "Workspace", engine: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]);
-   } catch (error) {
-     console.error('Error creating workspace:', error);
-     // Handle error appropriately, e.g., set a global error state
-   }
- };
-
- 
 // setting message history to the ref
   useEffect(() => {
     messageHistoryRef.current = props.messageHistory;
@@ -475,10 +402,13 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
 
     if (props.configuration.files?.length) {
       getSignedUrls();
+    } else {
+      setFiles([]);
     }
   }, [props.configuration]);
 
-  const hasImagesInChatHistory = function (): boolean {
+  // Earlier files stay in context for follow-up questions, whatever their type
+  const hasFilesInChatHistory = function (): boolean {
     return (
       messageHistoryRef.current.filter(
         (x) =>
@@ -508,10 +438,7 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
       action: ChatBotAction.Run,
       modelInterface:
         (props.configuration.files && props.configuration.files.length > 0) ||
-        (hasImagesInChatHistory() &&
-          state.selectedModelMetadata?.inputModalities.includes(
-            ChabotInputModality.Image
-          ))
+        hasFilesInChatHistory()
           ? "multimodal"
           : (state.selectedModelMetadata!.interface as ModelInterface),
       data: {
@@ -592,6 +519,21 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
     [ReadyState.UNINSTANTIATED]: "Uninstantiated",
   }[readyState];
 
+  const documentFiles = files.filter(isDocumentFile);
+  const imageFiles = files.filter((file) => !isDocumentFile(file));
+  // Documents go to Claude Haiku 5.5 when the selected model cannot read them
+  const selectedModelReadsDocuments =
+    state.selectedModelMetadata?.inputModalities.includes(
+      ChabotInputModality.Document
+    ) ?? true;
+
+  const removeFile = (fileKey: string) => {
+    props.setConfiguration((previous) => ({
+      ...previous,
+      files: (previous.files ?? []).filter((file) => file.key !== fileKey),
+    }));
+  };
+
   const modelsOptions = OptionsHelper.getSelectOptionGroups(state.models ?? []);
 
   const workspaceOptions = [
@@ -602,6 +544,30 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
   return (
     <SpaceBetween direction="vertical" size="l">
       <Container>
+        {documentFiles.length > 0 && (
+          <SpaceBetween size="xs">
+            <TokenGroup
+              alignment="horizontal"
+              items={documentFiles.map((file) => ({
+                label: file.name ?? "Document",
+                iconName: "file",
+                dismissLabel: `Remove ${file.name ?? "document"}`,
+              }))}
+              onDismiss={({ detail: { itemIndex } }) =>
+                removeFile(documentFiles[itemIndex].key)
+              }
+              i18nStrings={{
+                limitShowFewer: "Show fewer documents",
+                limitShowMore: "Show more documents",
+              }}
+            />
+            {!selectedModelReadsDocuments && (
+              <Box variant="small">
+                This model can't read documents, so Claude Haiku 5.5 will answer.
+              </Box>
+            )}
+          </SpaceBetween>
+        )}
         <div className={styles.input_textarea_container}>
           <SpaceBetween size="xxs" direction="horizontal" alignItems="center">
             {browserSupportsSpeechRecognition ? (
@@ -647,6 +613,12 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
             configuration={props.configuration}
             setConfiguration={props.setConfiguration}
           />
+          <DocumentDialog
+            visible={documentDialogVisible}
+            setVisible={setDocumentDialogVisible}
+            configuration={props.configuration}
+            setConfiguration={props.setConfiguration}
+          />
           <TextareaAutosize
             className={styles.input_textarea}
             value={state.value} // added here so the value in the component is bound to state
@@ -670,8 +642,8 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
             {state.selectedModelMetadata?.inputModalities.includes(
               ChabotInputModality.Image
             ) &&
-              files.length > 0 &&
-              files.map((file, idx) => (
+              imageFiles.length > 0 &&
+              imageFiles.map((file, idx) => (
                 <img
                   key={idx}
                   onClick={() => setImageDialogVisible(true)}
@@ -793,9 +765,8 @@ const checkWorkspaceExists = async (name: string): Promise<boolean> => {
               />
             </div>
   
-            {/* SARAH New Upload Document Button */}
             <Button
-              onClick={handleUploadDocument}
+              onClick={() => setDocumentDialogVisible(true)}
               variant="primary"
               iconName="upload"
             >

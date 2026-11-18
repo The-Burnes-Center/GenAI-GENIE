@@ -366,7 +366,8 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
     }
   }, [props.configuration]);
 
-  const hasImagesInChatHistory = function (): boolean {
+  // Earlier files stay in context for follow-up questions, whatever their type
+  const hasFilesInChatHistory = function (): boolean {
     return (
       messageHistoryRef.current.filter(
         (x) =>
@@ -425,10 +426,7 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
       action: ChatBotAction.Run,
       modelInterface:
         (props.configuration.files && props.configuration.files.length > 0) ||
-        (hasImagesInChatHistory() &&
-          state.selectedModelMetadata?.inputModalities.includes(
-            ChabotInputModality.Image
-          ))
+        hasFilesInChatHistory()
           ? "multimodal"
           : (state.selectedModelMetadata!.interface as ModelInterface),
       data: {

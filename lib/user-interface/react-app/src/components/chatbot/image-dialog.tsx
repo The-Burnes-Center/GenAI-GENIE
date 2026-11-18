@@ -13,6 +13,7 @@ import { useForm } from "../../common/hooks/use-form";
 import { Storage } from "aws-amplify";
 import { Dispatch, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { isDocumentFile } from "./documents";
 import { ChatBotConfiguration, FileStorageProvider, ImageFile } from "./types";
 
 export interface ImageDialogProps {
@@ -60,9 +61,11 @@ export default function ImageDialog(props: ImageDialogProps) {
 
     const files: ImageFile[] = (await uploadFiles(data.files)) as ImageFile[];
 
+    // Replace the images already attached, but keep any documents for this message
+    const documents = (props.configuration.files ?? []).filter(isDocumentFile);
     props.setConfiguration({
       ...props.configuration,
-      files,
+      files: [...documents, ...files],
     });
     setFiles([]);
     setLoading(false);
@@ -143,6 +146,7 @@ export default function ImageDialog(props: ImageDialogProps) {
 
   return (
     <Modal
+      closeAriaLabel="Close dialog"
       onDismiss={() => props.setVisible(false)}
       visible={props.visible}
       footer={

@@ -60,10 +60,12 @@ export enum FileStorageProvider {
   S3 = "s3",
 }
 
+// Images and documents attached to a message. Documents also carry their original file name.
 export interface ImageFile {
   provider: FileStorageProvider;
   key: string;
   url: string;
+  name?: string;
 }
 
 export interface ChatBotHeartbeatRequest {
@@ -154,6 +156,7 @@ export interface ChatBotMessageResponse {
 export enum ChabotInputModality {
   Text = "TEXT",
   Image = "IMAGE",
+  Document = "DOCUMENT",
 }
 
 // MANIAC IDEA 

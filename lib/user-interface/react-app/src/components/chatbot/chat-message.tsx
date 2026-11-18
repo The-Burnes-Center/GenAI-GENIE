@@ -3,6 +3,7 @@ import {
     Button,
     Container,
     ExpandableSection,
+    Icon,
     Popover,
     Spinner,
     StatusIndicator,
@@ -26,6 +27,7 @@ import {
 } from "./types";
 
 import {getSignedUrl} from "./utils";
+import {isDocumentFile} from "./documents";
 
 import "react-json-view-lite/dist/index.css";
 import "../../styles/app.scss";
@@ -351,10 +353,16 @@ export default function ChatMessage(props: ChatMessageProps) {
                             rel="noreferrer"
                             style={{marginLeft: "5px", marginRight: "5px"}}
                         >
-                            <img
-                                src={file.url as string}
-                                className={styles.img_chabot_message}
-                            />
+                            {isDocumentFile(file) ? (
+                                <span>
+                                    <Icon name="file" /> {file.name ?? "Document"}
+                                </span>
+                            ) : (
+                                <img
+                                    src={file.url as string}
+                                    className={styles.img_chabot_message}
+                                />
+                            )}
                         </a>
                     ))}
                 </>

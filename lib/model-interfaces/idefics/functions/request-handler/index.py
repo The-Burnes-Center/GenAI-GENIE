@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from urllib.parse import urljoin
 from adapters import Idefics
+from adapters.claude import get_required_modalities
 
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType
@@ -16,6 +17,7 @@ from langchain.llms import SagemakerEndpoint
 from genai_core.langchain import DynamoDBChatMessageHistory
 from genai_core.utils.websocket import send_to_client
 from genai_core.types import ChatbotAction, ChatbotMessageType
+from genai_core.models import get_input_modalities
 from genai_core.registry import registry
 
 from content_handler import ContentHandler
@@ -25,6 +27,21 @@ META_MODEL_ID = "meta_model_as_db_supersecret_id"
 BEDROCK_MODEL_ID_FALLBACK = "us.anthropic.claude-haiku-5-5"
 tracer = Tracer()
 logger = Logger()
+
+
+def choose_model_id(model_id: str, required_modalities: set) -> str:
+    """Use the selected model if it accepts every file type in the chat, otherwise Claude Haiku 5.5."""
+    if model_id == META_MODEL_ID:
+        logger.info("Smart Model answers file chats with Claude Haiku 5.5")
+        return BEDROCK_MODEL_ID_FALLBACK
+
+    supported = set(get_input_modalities(model_id))
+    if required_modalities <= supported:
+        return model_id
+
+    unsupported = sorted(required_modalities - supported)
+    logger.info(f"{model_id} does not accept {unsupported}, using Claude Haiku 5.5")
+    return BEDROCK_MODEL_ID_FALLBACK
 
 
 def handle_run(record):
@@ -54,10 +71,9 @@ def handle_run(record):
 
     messages = chat_history.messages
 
-    if model_id == META_MODEL_ID:
-        # The Smart Model router only lives in the langchain interface, so image chats use Haiku
-        logger.info("Smart Model is not available for image chats, using Claude Haiku 5.5")
-        model_id = BEDROCK_MODEL_ID_FALLBACK
+    # The Smart Model router only lives in the langchain interface, so file chats use Haiku
+    required_modalities = get_required_modalities(messages, files)
+    model_id = choose_model_id(model_id, required_modalities)
 
     adapter = registry.get_adapter(f"{provider}.{model_id}")
 
