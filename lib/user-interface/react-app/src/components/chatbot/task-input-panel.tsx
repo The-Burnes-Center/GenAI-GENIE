@@ -532,6 +532,7 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
     !!state.selectedModel &&
     !props.running &&
     state.value.trim().length > 0 &&
+    !attach.uploading && // a file still uploading would be left out of the message
     !props.session.loading;
 
   return (
