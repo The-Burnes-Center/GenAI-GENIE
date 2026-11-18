@@ -7,12 +7,12 @@ import {
   ChatBotMessageType,
   FeedbackData,
 } from "./types";
-import { SpaceBetween, StatusIndicator } from "@cloudscape-design/components";
+import { Box, SpaceBetween, StatusIndicator } from "@cloudscape-design/components";
 import ChatInputPanel, { ChatScrollState } from "./chat-input-panel";
 import TaskPriming from "./task";
 import ChatMessage from "./chat-message";
 import { v4 as uuidv4 } from "uuid";
-import { CHATBOT_NAME, TaskOptions } from "../../common/constants";
+import { TaskOptions } from "../../common/constants";
 import styles from "../../styles/chat.module.scss";
 import TaskInputPanel, { TaskInputPanelProps } from "./task-input-panel";
 import { AppContext } from "../../common/app-context";
@@ -21,6 +21,9 @@ import { ApiClient } from "../../common/api-client/api-client";
 // could we inport state to grab the orig prompt 
 
 
+
+// One readable column, centered, instead of stretching across wide screens
+const CHAT_COLUMN = { maxWidth: 1000, width: "100%", marginInline: "auto" } as const;
 
 export default function TaskChat(props: {sessionId?: string, prompt?: string, taskOb?: ChatBotTask}) {
   // constants for taskObject
@@ -191,7 +194,7 @@ const addUserFeedback = async (feedbackData: FeedbackData) => {
 
 
 return (
-  <div className={styles.chat_container}>
+  <div className={styles.chat_container} style={CHAT_COLUMN}>
     <SpaceBetween direction="vertical" size="m">
       {messageHistory.map((message, idx) => (
         <ChatMessage
@@ -203,15 +206,21 @@ return (
         />
       ))}
     </SpaceBetween>
-    <div className={styles.welcome_text}>
-      {messageHistory.length == 0 && !session?.loading && (
-          <><center>{CHATBOT_NAME}</center><center style={{ fontSize: 'smaller' }}>{taskTitle}</center></>        )}
-      {session?.loading && (
-        <center>
-          <StatusIndicator type="loading">Loading session</StatusIndicator>
-        </center>
-      )}
-    </div>
+    {messageHistory.length == 0 && !session?.loading && (
+      <Box textAlign="center" padding={{ vertical: "xxl", horizontal: "m" }}>
+        <SpaceBetween size="m">
+          <Box variant="h1" tagOverride="h2">
+            {taskTitle}
+          </Box>
+          <Box color="text-body-secondary">{instructions?.trim()}</Box>
+        </SpaceBetween>
+      </Box>
+    )}
+    {session?.loading && (
+      <Box textAlign="center" padding="xxl">
+        <StatusIndicator type="loading">Loading your chat</StatusIndicator>
+      </Box>
+    )}
     <div className={styles.input_container}>
       <TaskInputPanel //CHANGE TO TASK
         session={session}

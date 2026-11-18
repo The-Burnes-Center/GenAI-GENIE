@@ -7,7 +7,6 @@ import TaskChat from "../../../components/chatbot/task-chat";
 import TaskPriming from "../../../components/chatbot/task";
 import { ChatBotTask } from "../../../components/chatbot/types";
 import { TaskOptions } from "../../../common/constants";
-import {Alert} from "@cloudscape-design/components";
 
 
 export default function TaskPlayground() {
@@ -72,44 +71,44 @@ export default function TaskPlayground() {
   return (
     <BaseAppLayout
       info={
-        <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
+        <HelpPanel header={<Header variant="h3">Using this task</Header>}>
           <p>
-           "react"playground allows user to interact with a chosen LLM and
-            optional RAG retriever. You can create new RAG workspaces via the{" "}
-            <Link to="/rag/workspaces">Workspaces</Link> console.
+            A task is a ready-made starting point for one job, such as writing an
+            email or summarizing a document. Read the instruction shown on the page
+            to see what to enter.
           </p>
-          <h3>Settings</h3>
+          <h3>Start a task</h3>
           <p>
-            You can configure additional settings for the LLM via the setting
-            action at the bottom-right. You can change the Temperature and Top P
-            values to be used for the answer generation. You can also enable and
-            disable streaming mode for those models that support it (the setting
-            is ignored if the model does not support streaming). Turning on
-            Metadata displays additional information about the answer, such as
-            the prompts being used to interact with the LLM and the document
-            passages that might have been retrieved from the RAG storage.
+            Type your details in the message box, then press Enter or Send. GENIE
+            follows the task's instructions, so you do not need to explain the job
+            again.
           </p>
-          <h3>Multimodal chat</h3>
+          <h3>Follow-up questions</h3>
           <p>
-            If you select a multimodal model (like Claude or Amazon Nova), you can
-            upload images to use in the conversation.
+            After the first answer, keep chatting in the same box. You can ask for
+            changes, such as a shorter version or a different tone. GENIE remembers
+            the conversation.
           </p>
-          <h3>Session history</h3>
+          <h3>Attach a file</h3>
           <p>
-            All conversations are saved and can be later accessed via the{" "}
-            <Link to="/chatbot/sessions">Session</Link> in the navigation bar.
+            Click Attach to add up to 5 documents or images. The files stay with the
+            conversation for follow-up questions.
+          </p>
+          <h3>Model and settings</h3>
+          <p>
+            Smart Model is the default. It sends each request to a model that suits
+            it. You can choose a model yourself from the list under the message box,
+            or use the settings button to change answer length and other options.
+          </p>
+          <h3>Task history</h3>
+          <p>
+            Every task is saved. Find past work in <Link to="/chatbot/sessions">History</Link>.
           </p>
         </HelpPanel>
       }
       toolsWidth={300}
       // 
-      content={<div>
-                    <Alert
-                        statusIconAriaLabel="Info"
-                        header="">
-                        AI models may occasionally make errors. Please validate critical information, avoid entering
-                        sensitive data, and refrain from attaching any sensitive documents.
-                    </Alert><TaskChat sessionId={sessionId} prompt={prompt} taskOb={cbTask3}/></div>}
+      content={<TaskChat sessionId={sessionId} prompt={prompt} taskOb={cbTask3} />}
         />
         ); //send prompt here : prompt = {}
         }

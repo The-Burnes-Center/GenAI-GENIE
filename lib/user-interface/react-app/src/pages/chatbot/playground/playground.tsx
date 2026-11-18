@@ -1,69 +1,44 @@
 import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
-import {Link, useParams} from "react-router-dom";
-import {Header, HelpPanel} from "@cloudscape-design/components";
-import {Alert} from "@cloudscape-design/components";
+import { Link, useParams } from "react-router-dom";
+import { Header, HelpPanel } from "@cloudscape-design/components";
 
 export default function Playground() {
-    const {sessionId} = useParams();
-    const {initialPrompt} = useParams();
-    console.log("prompt in playground" + initialPrompt);
-    // console.log(prompt + "testing #85")
-    return (
-        <BaseAppLayout
-            info={
-                <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
-                    <p>
-                        "react"playground allows user to interact with a chosen LLM and
-                        optional RAG retriever. You can create new RAG workspaces via the{" "}
-                        <Link to="/rag/workspaces">Workspaces</Link> console.
-                    </p>
-                    <h2> Smart Model</h2>
-                    <p> The Smart Model is set as the default model option. It automatically routes your input to the
-                        model
-                        best suited for the task. To see which model was selected, see settings for the Metadata option.
-                        Of course, you are also encouraged to experiment with multiple models, and find your favorites!
-                        and find the
-                    </p>
-                    <h3>Settings</h3>
-                    <p>
-                        You can configure additional settings for the LLM via the setting
-                        action at the bottom-right. You can change the Temperature and Top P
-                        values to be used for the answer generation. You can also enable and
-                        disable streaming mode for those models that support it (the setting
-                        is ignored if the model does not support streaming). Turning on
-                        Metadata displays additional information about the answer, such as
-                        the prompts being used to interact with the LLM and the document
-                        passages that might have been retrieved from the RAG storage.
-                    </p>
-                    <h3>Multimodal chat</h3>
-                    <p>
-                        If you select a multimodal model (like Claude or Amazon Nova), you can
-                        upload images to use in the conversation.
-                    </p>
-                    <h3>Session history</h3>
-                    <p>
-                        All conversations are saved and can be later accessed via the{" "}
-                        <Link to="/chatbot/sessions">Session</Link> in the navigation bar.
-                    </p>
-                </HelpPanel>
-            }
-            toolsWidth={300}
-            //
-            content={
-                <div>
-                    <Alert
-                        statusIconAriaLabel="Info"
-                        header="">
-                        AI models may occasionally make errors. Please validate critical information, avoid entering
-                        sensitive data, and refrain from attaching any sensitive documents.
-                    </Alert>
-                    <Chat sessionId={sessionId} prompt={initialPrompt}/>
-                </div>
-                // initialPrompt
-                // prompt = {initialPrompt}
-            }
-        />
-    ); //send prompt here : prompt = {}
+  const { sessionId } = useParams();
+
+  return (
+    <BaseAppLayout
+      info={
+        <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
+          <p>
+            Type a question or request in the message box and press Enter or Send. GENIE remembers
+            the conversation, so you can ask follow-up questions.
+          </p>
+          <h3>Ask about a document</h3>
+          <p>
+            Click Attach, choose up to 5 documents or images, then ask your question. The files stay
+            with the conversation for follow-up questions.
+          </p>
+          <h3>Smart Model</h3>
+          <p>
+            Smart Model is the default. It sends each question to a model that suits it. You can
+            also choose a model yourself from the list under the message box.
+          </p>
+          <h3>Settings</h3>
+          <p>
+            The settings button next to the model list controls answer length and whether answers
+            appear word by word. Turn on Details to see which model answered.
+          </p>
+          <h3>Chat history</h3>
+          <p>
+            Every conversation is saved. Find past chats in{" "}
+            <Link to="/chatbot/sessions">History</Link>.
+          </p>
+        </HelpPanel>
+      }
+      toolsWidth={300}
+      content={<Chat sessionId={sessionId} />}
+    />
+  );
 }

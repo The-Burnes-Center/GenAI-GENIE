@@ -1,0 +1,74 @@
+@use "@cloudscape-design/design-tokens/index" as awsui;
+
+// One box holds the attachments, the message and every control, like a modern chat composer.
+.composer {
+  container-type: inline-size;
+  container-name: composer;
+}
+
+.attachments {
+  padding-bottom: awsui.$space-scaled-xs;
+}
+
+.fallback_note {
+  padding-top: awsui.$space-scaled-xxs;
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: awsui.$color-text-body-default;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: awsui.$space-scaled-xs awsui.$space-scaled-xxs;
+
+  &::placeholder {
+    color: awsui.$color-text-input-placeholder;
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: awsui.$space-scaled-xs;
+  padding-top: awsui.$space-scaled-xs;
+  border-top: 1px solid awsui.$color-border-divider-default;
+}
+
+.toolbar_group {
+  display: flex;
+  align-items: center;
+  gap: awsui.$space-scaled-xxs;
+}
+
+.model_select {
+  width: 260px;
+}
+
+.footnote {
+  padding-top: awsui.$space-scaled-xs;
+  text-align: center;
+}
+
+// Narrow composer (phones, or a narrow panel): the model picker takes the left of the
+// second row and Send stays on the right.
+@container composer (max-width: 560px) {
+  .toolbar_end {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .model_select {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+}

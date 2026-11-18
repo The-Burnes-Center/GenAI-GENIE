@@ -28,6 +28,7 @@ import {
 
 import {getSignedUrl} from "./utils";
 import {isDocumentFile} from "./documents";
+import * as awsui from "@cloudscape-design/design-tokens";
 
 import "react-json-view-lite/dist/index.css";
 import "../../styles/app.scss";
@@ -96,7 +97,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                 ((props?.showMetadata && props.message.metadata) ||
                     (props.message.metadata &&
                     props.configuration?.showMetadata)) && (
-                    <ExpandableSection variant="footer" headerText="Metadata">
+                    <ExpandableSection variant="footer" headerText="Details">
                     <JsonView
                         shouldInitiallyExpand={(level) => level < 2}
                         data={JSON.parse(
@@ -131,6 +132,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                             <Button
                                 variant="inline-icon"
                                 iconName="copy"
+                                ariaLabel="Copy document text"
                                 onClick={() => {
                                 navigator.clipboard.writeText(
                                     (
@@ -184,6 +186,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                             <Button
                                 variant="inline-icon"
                                 iconName="copy"
+                                ariaLabel="Copy prompt"
                                 onClick={() => {
                                 navigator.clipboard.writeText(
                                     (props.message.metadata.prompts as string[][])[
@@ -233,29 +236,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                     <Spinner/>
                 </Box>
                 ) : null}
-                {props.message.content.length > 0 ? (
-                <div className={styles.btn_chabot_message_copy}>
-                    <Popover
-                    size="medium"
-                    position="top"
-                    triggerType="custom"
-                    dismissButton={false}
-                    content={
-                        <StatusIndicator type="success">
-                        Copied to clipboard
-                        </StatusIndicator>
-                    }
-                    >
-                    <Button
-                        variant="inline-icon"
-                        iconName="copy"
-                        onClick={() => {
-                        navigator.clipboard.writeText(props.message.content);
-                        }}
-                    />
-                    </Popover>
-                </div>
-                ) : null}
                 <ReactMarkdown
                 children={content}
                 remarkPlugins={[remarkGfm]}
@@ -295,10 +275,33 @@ export default function ChatMessage(props: ChatMessageProps) {
                 }}
                 />
                 <div className={styles.thumbsContainer}>
+                {props.message.content.length > 0 && (
+                    <Popover
+                    size="small"
+                    position="top"
+                    triggerType="custom"
+                    dismissButton={false}
+                    content={
+                        <StatusIndicator type="success">
+                        Copied
+                        </StatusIndicator>
+                    }
+                    >
+                    <Button
+                        variant="icon"
+                        iconName="copy"
+                        ariaLabel="Copy answer"
+                        onClick={() => {
+                        navigator.clipboard.writeText(props.message.content);
+                        }}
+                    />
+                    </Popover>
+                )}
                 {(selectedIcon === 1 || selectedIcon === null) && (
                     <Button
                     variant="icon"
                     iconName={selectedIcon === 1 ? "thumbs-up-filled" : "thumbs-up"}
+                    ariaLabel="Good answer"
                     onClick={() => {
                         props.onThumbsUp("");
                         setSelectedIcon(1);
@@ -311,6 +314,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                         selectedIcon === 0 ? "thumbs-down-filled" : "thumbs-down"
                     }
                     variant="icon"
+                    ariaLabel="Bad answer"
                     onClick={() => {
                         // props.onThumbsDown("Hi!, this is DB testing!");
                         setShowFeedbackBox(true);
@@ -321,7 +325,8 @@ export default function ChatMessage(props: ChatMessageProps) {
                 {showFeedbackBox && <SpaceBetween size="xxs">
                     <Input
                     onChange={({detail}) => setWrittenFeedback(detail.value)}
-                    placeholder="Please provide feedback"
+                    placeholder="Tell us what went wrong (optional)"
+                    ariaLabel="Feedback about this answer"
                     onKeyDown={({detail}) => {
                         if (detail.key == "Enter") {
                         props.onThumbsDown(writtenFeedback)
@@ -343,29 +348,63 @@ export default function ChatMessage(props: ChatMessageProps) {
                 <Spinner/>
             </Box>
             )}
-            {files && !loading && (
-            <>
-                    {files.map((file, idx) => (
-                        <a
-                            key={idx}
-                            href={file.url as string}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{marginLeft: "5px", marginRight: "5px"}}
-                        >
-                            {isDocumentFile(file) ? (
-                                <span>
-                                    <Icon name="file" /> {file.name ?? "Document"}
+            {files.length > 0 && !loading && (
+                // Files sent with the message sit right-aligned above the user's bubble
+                <div
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 8,
+                    }}
+                >
+                    {files.map((file, idx) => {
+                        const name = file.name ?? (isDocumentFile(file) ? "Document" : "Image");
+                        return isDocumentFile(file) ? (
+                            <a
+                                key={idx}
+                                href={file.url as string}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={`Open ${name} in a new tab`}
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    padding: "4px 10px",
+                                    borderRadius: 8,
+                                    border: `1px solid ${awsui.colorBorderDividerDefault}`,
+                                    background: awsui.colorBackgroundContainerContent,
+                                    color: awsui.colorTextLinkDefault,
+                                    textDecoration: "none",
+                                    maxWidth: 260,
+                                }}
+                            >
+                                <Icon name="file" />
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {name}
                                 </span>
-                            ) : (
+                            </a>
+                        ) : (
+                            <a key={idx} href={file.url as string} target="_blank" rel="noreferrer" aria-label={`Open ${name} in a new tab`}>
                                 <img
                                     src={file.url as string}
-                                    className={styles.img_chabot_message}
+                                    alt={name}
+                                    style={{
+                                        display: "block",
+                                        maxHeight: 120,
+                                        maxWidth: 200,
+                                        objectFit: "cover",
+                                        borderRadius: 8,
+                                        border: `1px solid ${awsui.colorBorderDividerDefault}`,
+                                    }}
                                 />
-                            )}
-                        </a>
-                    ))}
-                </>
+                            </a>
+                        );
+                    })}
+                </div>
             )}
 
             {props.message?.type === ChatBotMessageType.Human && (

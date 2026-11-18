@@ -1,16 +1,10 @@
-import {
-  Button,
-  SpaceBetween,
-  Container,
-  Spinner,
-  Icon,
-} from "@cloudscape-design/components";
+import { Button, Container, Spinner } from "@cloudscape-design/components";
 import { useEffect, useState } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 import TextareaAutosize from "react-textarea-autosize";
-import styles from "../../styles/chat.module.scss";
+import composer from "../../styles/composer.module.scss";
 
 export interface MultiChatInputPanelProps {
   running: boolean;
@@ -63,75 +57,63 @@ export default function MultiChatInputPanel(props: MultiChatInputPanelProps) {
     };
   }, []);
 
+  const send = () => {
+    if (!props.enabled || value.trim().length === 0) return;
+    props.onSendMessage(value);
+    setValue("");
+  };
+
   return (
-    <SpaceBetween direction="vertical" size="xs">
-      <div
-        style={{ display: "flex", justifyContent: "end", paddingRight: "4px" }}
-      ></div>
+    <div className={composer.composer}>
       <Container>
-        <div className={styles.input_textarea_container}>
-          <span>
-            {browserSupportsSpeechRecognition ? (
+        <TextareaAutosize
+          className={composer.textarea}
+          minRows={2}
+          maxRows={8}
+          maxLength={10000}
+          spellCheck={true}
+          autoFocus
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key == "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          value={value}
+          placeholder={listening ? "Listening..." : "Ask one question to compare the answers"}
+          aria-label="Message"
+        />
+        <div className={composer.toolbar}>
+          <div className={composer.toolbar_group}>
+            {browserSupportsSpeechRecognition && (
               <Button
                 iconName={listening ? "microphone-off" : "microphone"}
                 variant="icon"
+                ariaLabel={listening ? "Stop dictation" : "Dictate your message"}
                 onClick={() =>
                   listening
                     ? SpeechRecognition.stopListening()
                     : SpeechRecognition.startListening()
                 }
               />
-            ) : (
-              <Icon name="microphone-off" variant="disabled" />
             )}
-          </span>
-
-          <TextareaAutosize
-            className={styles.input_textarea}
-            style={{ width: "100%" }}
-            maxRows={6}
-            minRows={1}
-            maxLength={10000}
-            spellCheck={true}
-            autoFocus
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (!props.enabled) return;
-              if (e.key == "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                let dateTime = new Date().toLocaleString();
-                props.onSendMessage(value);
-                // fix this: "\n\nFor more context here is the current date and time: " + dateTime
-                setValue("");
-              }
-            }}
-            value={value}
-            placeholder={listening ? "Listening..." : "Send a message"}
-          />
-          <div style={{ marginLeft: "8px" }}>
-            <Button
-              disabled={!props.enabled || value.trim().length === 0}
-              onClick={() => {
-                let dateTime = new Date().toLocaleString();
-                props.onSendMessage(value+ "\n\nThe current date and time: " + dateTime + "dont tell me that i provided this to you, this is just for you to understand my current date and time.");
-                setValue("");
-              }}
-              iconAlign="right"
-              iconName={!props.running ? "angle-right-double" : undefined}
-              variant="primary"
-            >
-              {props.running ? (
-                <>
-                  Loading&nbsp;&nbsp;
-                  <Spinner />
-                </>
-              ) : (
-                "Send"
-              )}
-            </Button>
           </div>
+          <Button
+            variant="primary"
+            disabled={!props.enabled || value.trim().length === 0}
+            onClick={send}
+          >
+            {props.running ? (
+              <>
+                <Spinner /> Answering
+              </>
+            ) : (
+              "Send"
+            )}
+          </Button>
         </div>
       </Container>
-    </SpaceBetween>
+    </div>
   );
 }

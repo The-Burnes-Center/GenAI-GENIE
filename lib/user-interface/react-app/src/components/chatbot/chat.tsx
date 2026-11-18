@@ -5,7 +5,8 @@ import {
   ChatBotMessageType,
   FeedbackData,
 } from "./types";
-import { SpaceBetween, StatusIndicator } from "@cloudscape-design/components";
+import { Box, SpaceBetween, StatusIndicator } from "@cloudscape-design/components";
+import ChatEmptyState from "./chat-empty-state";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
@@ -15,9 +16,13 @@ import styles from "../../styles/chat.module.scss";
 import { CHATBOT_NAME, TaskOptions } from "../../common/constants";
 import TaskPriming from "./task";
 
+// One readable column, centered, instead of stretching across wide screens
+const CHAT_COLUMN = { maxWidth: 1000, width: "100%", marginInline: "auto" } as const;
+
 export default function Chat(props: { sessionId?: string, prompt?: string}) {
   const appContext = useContext(AppContext);
   const [running, setRunning] = useState<boolean>(false);
+  const [draft, setDraft] = useState<{ text: string; id: number }>();
   const [session, setSession] = useState<{ id: string; loading: boolean }>({
     id: props.sessionId ?? uuidv4(),
     loading: typeof props.sessionId !== "undefined",
@@ -173,7 +178,7 @@ export default function Chat(props: { sessionId?: string, prompt?: string}) {
 
 
   return (
-    <div className={styles.chat_container}>
+    <div className={styles.chat_container} style={CHAT_COLUMN}>
       <SpaceBetween direction="vertical" size="m">
         {messageHistory.map((message, idx) => (
           <ChatMessage
@@ -185,15 +190,14 @@ export default function Chat(props: { sessionId?: string, prompt?: string}) {
           />
         ))}
       </SpaceBetween>
-      <div className={styles.welcome_text}>
-        {messageHistory.length == 0 && !session?.loading && (
-          <><center>{CHATBOT_NAME}</center><center style={{ fontSize: 'smaller' }}>What can I help you with today?</center></>        )}
-        {session?.loading && (
-          <center>
-            <StatusIndicator type="loading">Loading session</StatusIndicator>
-          </center>
-        )}
-      </div>
+      {messageHistory.length == 0 && !session?.loading && (
+        <ChatEmptyState onPick={(text) => setDraft({ text, id: Date.now() })} />
+      )}
+      {session?.loading && (
+        <Box textAlign="center" padding="xxl">
+          <StatusIndicator type="loading">Loading your chat</StatusIndicator>
+        </Box>
+      )}
       <div className={styles.input_container}>
         <ChatInputPanel
           session={session}
@@ -206,6 +210,7 @@ export default function Chat(props: { sessionId?: string, prompt?: string}) {
           setMessageHistory={(history) => setMessageHistory(history)}
           configuration={configuration}
           setConfiguration={setConfiguration}
+          draft={draft}
         />
       </div>
     </div>

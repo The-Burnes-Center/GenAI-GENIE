@@ -1,12 +1,12 @@
 import {
+  Box,
   Button,
   Container,
-  Icon,
   Select,
   SelectProps,
-  SpaceBetween,
   Spinner,
   StatusIndicator,
+  TokenGroup,
 } from "@cloudscape-design/components";
 import {
   Dispatch,
@@ -26,14 +26,16 @@ import { ReadyState } from "react-use-websocket";
 import { ApiClient } from "../../common/api-client/api-client";
 import { AppContext } from "../../common/app-context";
 import { OptionsHelper } from "../../common/helpers/options-helper";
+import { getChatModelOptions, SMART_MODEL_NAME } from "../../common/helpers/model-options";
 import { StorageHelper } from "../../common/helpers/storage-helper";
 import { API } from "aws-amplify";
 import { GraphQLSubscription, GraphQLResult } from "@aws-amplify/api";
 import { Model, ReceiveMessagesSubscription, Workspace } from "../../API";
 import { LoadingStatus, ModelInterface } from "../../common/types";
-import styles from "../../styles/chat.module.scss";
+import composer from "../../styles/composer.module.scss";
 import ConfigDialog from "./config-dialog";
-import ImageDialog from "./image-dialog";
+import { useAttachFiles } from "./use-attach-files";
+import { isDocumentFile } from "./documents";
 import {
   ChabotInputModality,
   ChatBotHeartbeatRequest,
@@ -106,7 +108,7 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
 
   const [state, setState] = useState<ChatInputState>({ //this becomes the state value - SARAH adding in the name of the task
     // have it so the value of the input is either the primer or mt string 
-    value:  " ", 
+    value: "",
     taskName: props.task.name, //come back to 
     initialPrompt: props.task.apiPrompt, 
     instructions: props.task.instructions, 
@@ -121,7 +123,7 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
   console.log('task name', state.taskName);
   console.log('initial prompt', state.initialPrompt);
   const [configDialogVisible, setConfigDialogVisible] = useState(false);
-  const [imageDialogVisible, setImageDialogVisible] = useState(false);
+  const attach = useAttachFiles(props.configuration, props.setConfiguration);
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [readyState, setReadyState] = useState<ReadyState>(
     ReadyState.UNINSTANTIATED
@@ -500,158 +502,175 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
   }
   };
 
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: "Connecting",
-    [ReadyState.OPEN]: "Open",
-    [ReadyState.CLOSING]: "Closing",
-    [ReadyState.CLOSED]: "Closed",
-    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
-  }[readyState];
+  const modelsOptions = getChatModelOptions(state.models ?? []);
 
-  const modelsOptions = OptionsHelper.getSelectOptionGroups(state.models ?? []);
+  const attachedFiles = props.configuration.files ?? [];
+  const hasDocuments = attachedFiles.some(isDocumentFile);
+  const hasImages = attachedFiles.some((file) => !isDocumentFile(file));
+  const modalities = state.selectedModelMetadata?.inputModalities ?? [];
+  // Files go to Claude Haiku 5.5 when the selected model cannot read them
+  const unreadable = [
+    hasDocuments && !modalities.includes(ChabotInputModality.Document) ? "documents" : null,
+    hasImages && !modalities.includes(ChabotInputModality.Image) ? "images" : null,
+  ].filter(Boolean);
+  const isSmartModel = state.selectedModelMetadata?.name === SMART_MODEL_NAME;
+  const isConnected = readyState === ReadyState.OPEN;
 
-  const workspaceOptions = [
-    ...workspaceDefaultOptions,
-    ...OptionsHelper.getSelectOptions(state.workspaces ?? []),
-  ];
+  const removeFile = (fileKey: string) => {
+    props.setConfiguration((previous) => ({
+      ...previous,
+      files: (previous.files ?? []).filter((file) => file.key !== fileKey),
+    }));
+  };
 
-   // Extract the part after "Text:"
-   // sarah testing
-  // let extractedPrompt = value;
-  // const textIndex = value.indexOf("Text:");
-  // if (textIndex !== -1) {
-  //   extractedPrompt = value.substring(textIndex + 5).trim();
-  // }
-  // console.log("extractedPrompt" + extractedPrompt);
+  // Signed preview URLs for attached images (filled in by the effect that watches configuration.files)
+  const previewUrl = (key: string) => files.find((f) => f.key === key)?.url || undefined;
 
-  // State to keep track of the selected language
-  // {props.initialPrompt}
+  const canSend =
+    isConnected &&
+    !!state.models?.length &&
+    !!state.selectedModel &&
+    !props.running &&
+    state.value.trim().length > 0 &&
+    !props.session.loading;
 
-  //  console.log("Selected Language:" , detail.selectedOption.label); 
-  // const shouldDisplaySelect = props.task.name.includes('translate');
-  //console.log('initial prompt', props.initialPrompt); - instructions 
-  //console.log('value after', state.value); - empty 
   return (
-    <SpaceBetween direction="vertical" size="l">
-      <div className={styles.non_editable_prompt} aria-readonly={isReadOnly}>
-          {props.initialPrompt}
-      </div>
-     
-        {props.task.name === "translate" && (<Select
-        placeholder="Select a language"
-        options={languageList}
-        selectedOption={selectedLanguage}
-        onChange={({ detail }) => setSelectedLanguage(detail.selectedOption)}
-        empty="No languages available"
-        />)}
-   
-      
+    <div className={composer.composer}>
+      {props.task.name === "translate" && (
+        <div className={composer.attachments}>
+          <Select
+            ariaLabel="Language"
+            placeholder="Select a language"
+            options={languageList}
+            selectedOption={selectedLanguage}
+            onChange={({ detail }) => setSelectedLanguage(detail.selectedOption)}
+            empty="No languages available"
+          />
+        </div>
+      )}
+
       <Container>
-        <div className={styles.input_textarea_container}>
-          <SpaceBetween size="xxs" direction="horizontal" alignItems="center">
-            {browserSupportsSpeechRecognition ? (
+        {attachedFiles.length > 0 && (
+          <div className={composer.attachments}>
+            <TokenGroup
+              alignment="horizontal"
+              items={attachedFiles.map((file) => {
+                const isDoc = isDocumentFile(file);
+                const label = file.name ?? (isDoc ? "Document" : "Image");
+                return {
+                  label,
+                  ...(isDoc || !previewUrl(file.key)
+                    ? { iconName: "file" as const }
+                    : { iconUrl: previewUrl(file.key), iconAlt: "" }),
+                  dismissLabel: `Remove ${label}`,
+                };
+              })}
+              onDismiss={({ detail: { itemIndex } }) =>
+                removeFile(attachedFiles[itemIndex].key)
+              }
+              limit={5}
+              i18nStrings={{
+                limitShowFewer: "Show fewer files",
+                limitShowMore: "Show more files",
+              }}
+            />
+            {unreadable.length > 0 && !isSmartModel && (
+              <div className={composer.fallback_note}>
+                <Box variant="small" color="text-body-secondary">
+                  This model can't read {unreadable.join(" or ")}, so Claude Haiku 5.5 will answer.
+                </Box>
+              </div>
+            )}
+          </div>
+        )}
+
+        <TextareaAutosize
+          className={composer.textarea}
+          aria-label="Message"
+          value={state.value}
+          minRows={2}
+          maxRows={8}
+          spellCheck={true}
+          autoFocus
+          onChange={(e) =>
+            setState((state) => ({ ...state, value: e.target.value }))
+          }
+          onKeyDown={(e) => {
+            if (e.key == "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (canSend) handleSendMessage();
+            }
+          }}
+          placeholder={listening ? "Listening..." : "Type your details, then press Enter to send"}
+        />
+
+        {attach.error && (
+          <div className={composer.fallback_note} role="alert">
+            <StatusIndicator type="error">{attach.error}</StatusIndicator>
+          </div>
+        )}
+
+        <div className={composer.toolbar}>
+          <div className={composer.toolbar_group}>
+            <Button
+              iconName="add-plus"
+              onClick={attach.openPicker}
+              loading={attach.uploading}
+              disabled={props.running}
+            >
+              Attach
+            </Button>
+            {browserSupportsSpeechRecognition && (
               <Button
                 iconName={listening ? "microphone-off" : "microphone"}
                 variant="icon"
+                ariaLabel={listening ? "Stop dictation" : "Dictate your message"}
                 onClick={() =>
                   listening
                     ? SpeechRecognition.stopListening()
                     : SpeechRecognition.startListening()
                 }
               />
-            ) : (
-              <Icon name="microphone-off" variant="disabled" />
             )}
-            {state.selectedModelMetadata?.inputModalities.includes(
-              ChabotInputModality.Image
-            ) && (
-              <Button
-                variant="icon"
-                onClick={() => setImageDialogVisible(true)}
-                iconSvg={
-                  <svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
-                    <rect
-                      x="2"
-                      y="2"
-                      width="19"
-                      height="19"
-                      rx="2"
-                      ry="2"
-                    ></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                }
-              ></Button>
-            )}
-          </SpaceBetween>
-          <ImageDialog
-            sessionId={props.session.id}
-            visible={imageDialogVisible}
-            setVisible={setImageDialogVisible}
-            configuration={props.configuration}
-            setConfiguration={props.setConfiguration}
-          />
-          
-          <TextareaAutosize
-            className={styles.input_textarea}
-            // maybe try here - SARAH
-            value={state.value} // added here so the value in the  component is bound to state
-            // readOnly={isReadOnly}
-            maxRows={6}
-            minRows={1}
-            spellCheck={true}
-            autoFocus
-            onChange={(e) =>
-              setState((state) => ({ ...state, value: e.target.value }))
-            }
-            onKeyDown={(e) => {
-              if (e.key == "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            
-            placeholder={listening ? "Listening..." : props.instructions }
-            // "Send a message"
-          />
-          <div style={{ marginLeft: "8px" }}>
-            {state.selectedModelMetadata?.inputModalities.includes(
-              ChabotInputModality.Image
-            ) &&
-              files.length > 0 &&
-              files.map((file, idx) => (
-                <img
-                  key={idx}
-                  onClick={() => setImageDialogVisible(true)}
-                  src={file.url}
-                  style={{
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    maxHeight: "30px",
-                    float: "left",
-                    marginRight: "8px",
-                  }}
-                />
-              ))}
+          </div>
+
+          <div className={`${composer.toolbar_group} ${composer.toolbar_end}`}>
+            <div className={composer.model_select}>
+              <Select
+                ariaLabel="Model"
+                disabled={props.running}
+                statusType={state.modelsStatus}
+                loadingText="Loading models..."
+                placeholder="Choose a model"
+                expandToViewport
+                empty="No models are available right now."
+                selectedOption={state.selectedModel}
+                onChange={({ detail }) => {
+                  setState((state) => ({
+                    ...state,
+                    selectedModel: detail.selectedOption,
+                    selectedModelMetadata: getSelectedModelMetadata(
+                      state.models,
+                      detail.selectedOption
+                    ),
+                  }));
+                  if (detail.selectedOption?.value) {
+                    StorageHelper.setSelectedLLM(detail.selectedOption.value);
+                  }
+                }}
+                options={modelsOptions}
+              />
+            </div>
             <Button
-              disabled={
-                readyState !== ReadyState.OPEN ||
-                !state.models?.length ||
-                !state.selectedModel ||
-                props.running ||
-                state.value.trim().length === 0 ||
-                props.session.loading
-              }
-              onClick={handleSendMessage}
-              iconAlign="right"
-              iconName={!props.running ? "angle-right-double" : undefined}
-              variant="primary"
-            >
+              iconName="settings"
+              variant="icon"
+              ariaLabel="Chat settings"
+              onClick={() => setConfigDialogVisible(true)}
+            />
+            <Button variant="primary" disabled={!canSend} onClick={handleSendMessage}>
               {props.running ? (
                 <>
-                  Loading&nbsp;&nbsp;
-                  <Spinner />
+                  <Spinner /> Answering
                 </>
               ) : (
                 "Send"
@@ -660,105 +679,38 @@ export default function TaskInputPanel(props: TaskInputPanelProps) {
           </div>
         </div>
       </Container>
-      <div className={styles.input_controls}>
-        <div
-          className={
-            appContext?.config.rag_enabled
-              ? styles.input_controls_selects_2
-              : styles.input_controls_selects_1
-          }
-        >
-          <Select
-            disabled={props.running}
-            statusType={state.modelsStatus}
-            loadingText="Loading models (might take few seconds)..."
-            placeholder="Select a model"
-            empty={
-              <div>
-                No models available. Please make sure you have access to Amazon
-                Bedrock or alternatively deploy a self hosted model on SageMaker
-                or add API_KEY to Secrets Manager
-              </div>
+
+      <div className={composer.footnote} aria-live="polite">
+        {isConnected ? (
+          <Box color="text-body-secondary">
+            GENIE can make mistakes. Check important information, and don't enter sensitive data.
+          </Box>
+        ) : (
+          <StatusIndicator
+            type={
+              readyState === ReadyState.CONNECTING ||
+              readyState === ReadyState.UNINSTANTIATED
+                ? "in-progress"
+                : "error"
             }
-            filteringType="auto"
-            selectedOption={state.selectedModel}
-            onChange={({ detail }) => {
-              setState((state) => ({
-                ...state,
-                selectedModel: detail.selectedOption,
-                selectedModelMetadata: getSelectedModelMetadata(
-                  state.models,
-                  detail.selectedOption
-                ),
-              }));
-              if (detail.selectedOption?.value) {
-                StorageHelper.setSelectedLLM(detail.selectedOption.value);
-              }
-            }}
-            options={modelsOptions}
-          />
-
-          {/* {appContext?.config.rag_enabled && ( SARAH - im hididng this right now bc workspaces dont work in tasks
-            <Select
-              disabled={
-                props.running || !state.selectedModelMetadata?.ragSupported
-              }
-              loadingText="Loading workspaces (might take few seconds)..."
-              statusType={state.workspacesStatus}
-              placeholder="Select a workspace (RAG data source)"
-              filteringType="auto"
-              selectedOption={state.selectedWorkspace}
-              options={workspaceOptions}
-              onChange={({ detail }) => {
-                if (detail.selectedOption?.value === "__create__") {
-                  navigate("/rag/workspaces/create");
-                } else {
-                  setState((state) => ({
-                    ...state,
-                    selectedWorkspace: detail.selectedOption,
-                  }));
-
-                  StorageHelper.setSelectedWorkspaceId(
-                    detail.selectedOption?.value ?? ""
-                  );
-                }
-              }}
-              empty={"No Workspaces available"}
-            />
-          )} */}
-        </div>
-        <div className={styles.input_controls_right}>
-          <SpaceBetween direction="horizontal" size="xxs" alignItems="center">
-            <div style={{ paddingTop: "1px" }}>
-              <ConfigDialog
-                sessionId={props.session.id}
-                visible={configDialogVisible}
-                setVisible={setConfigDialogVisible}
-                configuration={props.configuration}
-                setConfiguration={props.setConfiguration}
-              />
-              <Button
-                iconName="settings"
-                variant="icon"
-                onClick={() => setConfigDialogVisible(true)}
-              />
-            </div>
-            <StatusIndicator
-              type={
-                readyState === ReadyState.OPEN
-                  ? "success"
-                  : readyState === ReadyState.CONNECTING ||
-                    readyState === ReadyState.UNINSTANTIATED
-                  ? "in-progress"
-                  : "error"
-              }
-            >
-              {readyState === ReadyState.OPEN ? "Connected" : connectionStatus}
-            </StatusIndicator>
-          </SpaceBetween>
-        </div>
+          >
+            {readyState === ReadyState.CONNECTING ||
+            readyState === ReadyState.UNINSTANTIATED
+              ? "Connecting..."
+              : "Not connected. Refresh the page to try again."}
+          </StatusIndicator>
+        )}
       </div>
-    </SpaceBetween>
+
+      {attach.fileInput}
+      <ConfigDialog
+        sessionId={props.session.id}
+        visible={configDialogVisible}
+        setVisible={setConfigDialogVisible}
+        configuration={props.configuration}
+        setConfiguration={props.setConfiguration}
+      />
+    </div>
   );
 }
 
